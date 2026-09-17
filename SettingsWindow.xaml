@@ -15,8 +15,9 @@
 
         <ui:TitleBar Grid.Row="0" Title="SircleToSearch - by Kiki" ShowMaximize="False" ShowMinimize="False"/>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                      CanContentScroll="False">
+        <ScrollViewer x:Name="SettingsScrollViewer" Grid.Row="1"
+                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                      CanContentScroll="False" PreviewMouseWheel="SettingsScrollViewer_PreviewMouseWheel">
         <StackPanel Margin="20,4,20,20">
             <TextBlock x:Name="WelcomeText" TextWrapping="Wrap" Opacity="0.7" FontSize="13" Margin="0,0,0,16"/>
 
