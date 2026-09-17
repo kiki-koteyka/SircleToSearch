@@ -15,7 +15,8 @@
 
         <ui:TitleBar Grid.Row="0" Title="SircleToSearch - by Kiki" ShowMaximize="False" ShowMinimize="False"/>
 
-        <StackPanel Grid.Row="1" Margin="20,4,20,20">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="20,4,20,20">
             <TextBlock x:Name="WelcomeText" TextWrapping="Wrap" Opacity="0.7" FontSize="13" Margin="0,0,0,16"/>
 
             <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Globe24}">
@@ -103,5 +104,6 @@
                 </StackPanel>
             </Grid>
         </StackPanel>
+        </ScrollViewer>
     </Grid>
 </ui:FluentWindow>

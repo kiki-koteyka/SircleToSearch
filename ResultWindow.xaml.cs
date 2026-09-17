@@ -303,6 +303,22 @@ public partial class ResultWindow : Window
                     * { word-wrap: break-word !important; overflow-wrap: anywhere !important; }
                 `;
                 document.documentElement.appendChild(style);
+
+                // Denying the ClipboardRead permission alone didn't stop it - Chromium
+                // lets a page write to the clipboard via the Async Clipboard API without
+                // a permission prompt at all, and results pages use that for their own
+                // "copied to clipboard" convenience features. Since the only image that
+                // exists here is the one the user just searched with, any write is one
+                // they didn't ask for - so the write methods are neutered outright rather
+                // than just gatekept, on every document this page (or an iframe in it)
+                // ever creates.
+                try {
+                    if (window.navigator && navigator.clipboard) {
+                        const blocked = () => Promise.reject(new DOMException('Blocked by SircleToSearch', 'NotAllowedError'));
+                        navigator.clipboard.writeText = blocked;
+                        navigator.clipboard.write = blocked;
+                    }
+                } catch (err) {}
             })();
             """);
 
