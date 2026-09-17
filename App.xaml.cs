@@ -175,14 +175,25 @@ public partial class App : System.Windows.Application
             }
             else
             {
-                _trayIcon?.ShowBalloonTip(8000, "SircleToSearch",
-                    Strings.Get("UpdateBalloonText", result.LatestVersion), WinForms.ToolTipIcon.Info);
+                _ = NotifyUpdateWhenIdleAsync(result.LatestVersion);
             }
         }
         catch (Exception ex)
         {
             AppLog.Info($"Фоновая проверка обновлений не удалась: {ex.Message}");
         }
+    }
+
+    /// <summary>Holds off the tray balloon until the search overlay (selection + result)
+    /// is fully closed — popping it up mid-search was distracting, right when the user
+    /// is trying to drag a selection or read the result.</summary>
+    private async Task NotifyUpdateWhenIdleAsync(string version)
+    {
+        while (_activeOverlay is not null)
+            await Task.Delay(500);
+
+        _trayIcon?.ShowBalloonTip(8000, "SircleToSearch",
+            Strings.Get("UpdateBalloonText", version), WinForms.ToolTipIcon.Info);
     }
 
     /// <summary>Entry point for anywhere in the app (background check, manual "Check for

@@ -270,6 +270,24 @@ public partial class ResultWindow : Window
             }
         };
 
+        // The results page is narrower here (460px) than any real phone it thinks it's
+        // running on, and some elements (long unbroken URLs/strings, tables, images)
+        // don't reflow to that — they force the whole page into horizontal scroll
+        // instead of just wrapping. Injected before the page's own content on every
+        // navigation so it always wins: hide horizontal overflow at the document level
+        // and make anything that would've overflowed wrap/shrink instead.
+        await Browser.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync("""
+            (function() {
+                const style = document.createElement('style');
+                style.textContent = `
+                    html, body { overflow-x: hidden !important; }
+                    img, table, pre, code, video, iframe { max-width: 100% !important; }
+                    * { word-wrap: break-word !important; overflow-wrap: anywhere !important; }
+                `;
+                document.documentElement.appendChild(style);
+            })();
+            """);
+
         AppLog.Info($"[perf] EnsureCoreWebView2: {sw.ElapsedMilliseconds}ms");
     }
 
