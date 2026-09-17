@@ -64,6 +64,28 @@ public partial class SettingsWindow : FluentWindow
         AutoUpdateLabel.Text = Strings.Get("SettingsAutoUpdate");
     }
 
+    private double ThumbMaxTravel => Math.Max(0, ScrollTrack.ActualHeight - ScrollThumb.ActualHeight);
+
+    private double OffsetToThumbY(double offset)
+    {
+        var scrollable = SettingsScrollViewer.ScrollableHeight;
+        return scrollable <= 0 ? 0 : offset / scrollable * ThumbMaxTravel;
+    }
+
+    private void SettingsScrollViewer_ScrollChanged(object sender, System.Windows.Controls.ScrollChangedEventArgs e)
+    {
+        var viewport = SettingsScrollViewer.ViewportHeight;
+        var extent = SettingsScrollViewer.ExtentHeight;
+        if (extent <= 0) return;
+
+        var trackHeight = ScrollTrack.ActualHeight;
+        ScrollThumb.Height = Math.Min(Math.Max(24, trackHeight * (viewport / extent)), trackHeight);
+        ScrollThumb.Visibility = viewport >= extent ? Visibility.Collapsed : Visibility.Visible;
+
+        if (!_scrollAnimating)
+            ScrollThumbTransform.Y = OffsetToThumbY(SettingsScrollViewer.VerticalOffset);
+    }
+
     private void SettingsScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         e.Handled = true;
@@ -76,22 +98,31 @@ public partial class SettingsWindow : FluentWindow
 
         _scrollPendingTarget = Math.Clamp(_scrollPendingTarget - e.Delta, 0, SettingsScrollViewer.ScrollableHeight);
 
-        var fromY = SettingsContentTransform.Y;
-        var toY = _scrollBaseOffset - _scrollPendingTarget;
+        var duration = TimeSpan.FromMilliseconds(280);
+        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
 
-        var animation = new DoubleAnimation(fromY, toY, TimeSpan.FromMilliseconds(280))
+        var contentAnimation = new DoubleAnimation(SettingsContentTransform.Y, _scrollBaseOffset - _scrollPendingTarget, duration)
         {
-            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            EasingFunction = ease
         };
+        var thumbAnimation = new DoubleAnimation(ScrollThumbTransform.Y, OffsetToThumbY(_scrollPendingTarget), duration)
+        {
+            EasingFunction = ease
+        };
+
         _scrollAnimating = true;
-        animation.Completed += (_, _) =>
+        contentAnimation.Completed += (_, _) =>
         {
             _scrollAnimating = false;
             SettingsContentTransform.BeginAnimation(TranslateTransform.YProperty, null);
             SettingsContentTransform.Y = 0;
             SettingsScrollViewer.ScrollToVerticalOffset(_scrollPendingTarget);
+            ScrollThumbTransform.BeginAnimation(TranslateTransform.YProperty, null);
+            ScrollThumbTransform.Y = OffsetToThumbY(_scrollPendingTarget);
         };
-        SettingsContentTransform.BeginAnimation(TranslateTransform.YProperty, animation, HandoffBehavior.SnapshotAndReplace);
+
+        SettingsContentTransform.BeginAnimation(TranslateTransform.YProperty, contentAnimation, HandoffBehavior.SnapshotAndReplace);
+        ScrollThumbTransform.BeginAnimation(TranslateTransform.YProperty, thumbAnimation, HandoffBehavior.SnapshotAndReplace);
     }
 
     private void RefreshHotkeyDisplay()

@@ -15,9 +15,16 @@
 
         <ui:TitleBar Grid.Row="0" Title="SircleToSearch - by Kiki" ShowMaximize="False" ShowMinimize="False"/>
 
-        <ScrollViewer x:Name="SettingsScrollViewer" Grid.Row="1"
-                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                      CanContentScroll="False" PreviewMouseWheel="SettingsScrollViewer_PreviewMouseWheel">
+        <Grid Grid.Row="1">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="10"/>
+        </Grid.ColumnDefinitions>
+
+        <ScrollViewer x:Name="SettingsScrollViewer" Grid.Column="0"
+                      VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled"
+                      CanContentScroll="False" PreviewMouseWheel="SettingsScrollViewer_PreviewMouseWheel"
+                      ScrollChanged="SettingsScrollViewer_ScrollChanged">
         <StackPanel x:Name="SettingsContentPanel" Margin="20,4,20,20">
             <StackPanel.RenderTransform>
                 <TranslateTransform x:Name="SettingsContentTransform"/>
@@ -110,5 +117,16 @@
             </Grid>
         </StackPanel>
         </ScrollViewer>
+
+        <Border x:Name="ScrollTrack" Grid.Column="1" Width="4" Margin="0,4,4,4"
+                VerticalAlignment="Stretch" HorizontalAlignment="Center" Background="Transparent">
+            <Border x:Name="ScrollThumb" Width="4" CornerRadius="2" Background="#40000000"
+                    VerticalAlignment="Top">
+                <Border.RenderTransform>
+                    <TranslateTransform x:Name="ScrollThumbTransform"/>
+                </Border.RenderTransform>
+            </Border>
+        </Border>
+        </Grid>
     </Grid>
 </ui:FluentWindow>
