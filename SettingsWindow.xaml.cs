@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Wpf.Ui.Controls;
 
@@ -16,24 +17,8 @@ public partial class SettingsWindow : FluentWindow
     private bool _loading = true;
     private bool _recordingHotkey;
 
-    private sealed class ScrollViewerOffsetMediator : FrameworkElement
-    {
-        public static readonly DependencyProperty VerticalOffsetProperty =
-            DependencyProperty.Register(nameof(VerticalOffset), typeof(double), typeof(ScrollViewerOffsetMediator),
-                new PropertyMetadata(0.0, (d, e) =>
-                    ((ScrollViewerOffsetMediator)d).ScrollViewer?.ScrollToVerticalOffset((double)e.NewValue)));
-
-        public System.Windows.Controls.ScrollViewer? ScrollViewer { get; set; }
-
-        public double VerticalOffset
-        {
-            get => (double)GetValue(VerticalOffsetProperty);
-            set => SetValue(VerticalOffsetProperty, value);
-        }
-    }
-
-    private readonly ScrollViewerOffsetMediator _scrollMediator = new();
-    private double _scrollTarget;
+    private double _scrollBaseOffset;
+    private double _scrollPendingTarget;
     private bool _scrollAnimating;
 
     public event Action? LanguageChanged;
@@ -42,7 +27,6 @@ public partial class SettingsWindow : FluentWindow
     public SettingsWindow()
     {
         InitializeComponent();
-        _scrollMediator.ScrollViewer = SettingsScrollViewer;
         Loaded += (_, _) =>
         {
             LanguageCombo.SelectedIndex = AppSettings.Current.Language == "ru" ? 1 : 0;
@@ -84,16 +68,30 @@ public partial class SettingsWindow : FluentWindow
     {
         e.Handled = true;
 
-        var baseOffset = _scrollAnimating ? _scrollTarget : SettingsScrollViewer.VerticalOffset;
-        _scrollTarget = Math.Clamp(baseOffset - e.Delta, 0, SettingsScrollViewer.ScrollableHeight);
+        if (!_scrollAnimating)
+        {
+            _scrollBaseOffset = SettingsScrollViewer.VerticalOffset;
+            _scrollPendingTarget = _scrollBaseOffset;
+        }
 
-        var animation = new DoubleAnimation(SettingsScrollViewer.VerticalOffset, _scrollTarget, TimeSpan.FromMilliseconds(280))
+        _scrollPendingTarget = Math.Clamp(_scrollPendingTarget - e.Delta, 0, SettingsScrollViewer.ScrollableHeight);
+
+        var fromY = SettingsContentTransform.Y;
+        var toY = _scrollBaseOffset - _scrollPendingTarget;
+
+        var animation = new DoubleAnimation(fromY, toY, TimeSpan.FromMilliseconds(280))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         };
         _scrollAnimating = true;
-        animation.Completed += (_, _) => _scrollAnimating = false;
-        _scrollMediator.BeginAnimation(ScrollViewerOffsetMediator.VerticalOffsetProperty, animation, HandoffBehavior.SnapshotAndReplace);
+        animation.Completed += (_, _) =>
+        {
+            _scrollAnimating = false;
+            SettingsContentTransform.BeginAnimation(TranslateTransform.YProperty, null);
+            SettingsContentTransform.Y = 0;
+            SettingsScrollViewer.ScrollToVerticalOffset(_scrollPendingTarget);
+        };
+        SettingsContentTransform.BeginAnimation(TranslateTransform.YProperty, animation, HandoffBehavior.SnapshotAndReplace);
     }
 
     private void RefreshHotkeyDisplay()
