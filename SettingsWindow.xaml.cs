@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Input;
 using Wpf.Ui.Controls;
 
 namespace SircleToSearch;
@@ -11,6 +12,7 @@ public partial class SettingsWindow : FluentWindow
     private const string RepoUrl = "https://github.com/kiki-koteyka/SircleToSearch";
     private const string AuthorUrl = "https://github.com/kiki-koteyka";
     private bool _loading = true;
+    private MouseButtonEventHandler? _updateLinkHandler;
 
     public event Action? LanguageChanged;
 
@@ -84,6 +86,18 @@ public partial class SettingsWindow : FluentWindow
         CheckUpdateButton.IsEnabled = false;
         UpdateStatusText.Text = Strings.Get("SettingsCheckingUpdate");
 
+        // Each check re-wires this link fresh — without removing the old handler first,
+        // clicking "Check for updates" repeatedly stacked one MouseLeftButtonDown
+        // subscription per check, so a single click on the link would open the download
+        // page that many times over.
+        if (_updateLinkHandler is not null)
+        {
+            UpdateStatusText.MouseLeftButtonDown -= _updateLinkHandler;
+            _updateLinkHandler = null;
+        }
+        UpdateStatusText.Cursor = System.Windows.Input.Cursors.Arrow;
+        UpdateStatusText.TextDecorations = null;
+
         try
         {
             var result = await UpdateChecker.CheckAsync();
@@ -93,7 +107,8 @@ public partial class SettingsWindow : FluentWindow
                 var downloadUrl = result.ReleaseUrl;
                 UpdateStatusText.Cursor = System.Windows.Input.Cursors.Hand;
                 UpdateStatusText.TextDecorations = TextDecorations.Underline;
-                UpdateStatusText.MouseLeftButtonDown += (_, _) => OpenUrl(downloadUrl);
+                _updateLinkHandler = (_, _) => OpenUrl(downloadUrl);
+                UpdateStatusText.MouseLeftButtonDown += _updateLinkHandler;
             }
             else
             {
