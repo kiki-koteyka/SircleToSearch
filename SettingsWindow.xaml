@@ -40,7 +40,7 @@
                 <ui:CardControl.Header>
                     <TextBlock x:Name="SearchEngineLabel" VerticalAlignment="Center" FontSize="14"/>
                 </ui:CardControl.Header>
-                <ComboBox x:Name="SearchEngineCombo" Width="160" SelectionChanged="SearchEngineCombo_SelectionChanged">
+                <ComboBox x:Name="SearchEngineCombo" Width="210" SelectionChanged="SearchEngineCombo_SelectionChanged">
                     <ComboBoxItem x:Name="SearchEngineGoogleItem" Tag="Google"/>
                     <ComboBoxItem Content="Yandex" Tag="Yandex"/>
                 </ComboBox>
