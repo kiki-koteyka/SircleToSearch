@@ -2,27 +2,27 @@ using System.Collections.Generic;
 
 namespace SircleToSearch;
 
-/// <summary>Tiny lookup-table localizer — English default, Russian fallback. No resx/satellite assemblies needed for two languages.</summary>
+/// <summary>Tiny lookup-table localizer - English default, Russian fallback. No resx/satellite assemblies needed for two languages.</summary>
 public static class Strings
 {
     private static readonly Dictionary<string, (string En, string Ru)> Table = new()
     {
-        ["OverlayHint"] = ("Drag a rectangle around what you want to search — Enter searches again, Esc closes",
-                            "Тяни прямоугольник, двигай и меняй размер — Enter ищёт снова, Esc закрывает"),
-        ["TrayTooltip"] = ("SircleToSearch — {0}", "SircleToSearch — {0}"),
+        ["OverlayHint"] = ("Drag a rectangle around what you want to search - Enter searches again, Esc closes",
+                            "Тяни прямоугольник, двигай и меняй размер - Enter ищёт снова, Esc закрывает"),
+        ["TrayTooltip"] = ("SircleToSearch - {0}", "SircleToSearch - {0}"),
         ["MenuSettings"] = ("Settings", "Настройки"),
         ["MenuAutostart"] = ("Launch with Windows", "Запускать со стартом Windows"),
         ["MenuFindNow"] = ("Search now ({0})", "Найти сейчас ({0})"),
         ["MenuExit"] = ("Exit", "Выход"),
         ["ResultHeaderIdle"] = ("Search with SircleToSearch", "Найти с SircleToSearch"),
         ["ResultHeaderSearching"] = ("Searching...", "Ищу..."),
-        ["ResultErrorCaptcha"] = ("Google is asking for a captcha — wait a moment and try again.",
-                                   "Google просит капчу — подожди немного и попробуй снова."),
-        ["ResultErrorGeneric"] = ("Search failed — try again.", "Поиск не удался — попробуй ещё раз."),
-        ["AlreadyRunning"] = ("SircleToSearch is already running — check the tray.",
-                               "SircleToSearch уже запущен — смотри в трее."),
-        ["HotkeyFailed"] = ("Couldn't register Win+Shift+Q — another program is already using it (Win32 error: {0}).",
-                             "Не удалось зарегистрировать Win+Shift+Q — хоткей уже занят другой программой (код ошибки Win32: {0})."),
+        ["ResultErrorCaptcha"] = ("Google is asking for a captcha - wait a moment and try again.",
+                                   "Google просит капчу - подожди немного и попробуй снова."),
+        ["ResultErrorGeneric"] = ("Search failed - try again.", "Поиск не удался - попробуй ещё раз."),
+        ["AlreadyRunning"] = ("SircleToSearch is already running - check the tray.",
+                               "SircleToSearch уже запущен - смотри в трее."),
+        ["HotkeyFailed"] = ("Couldn't register Win+Shift+Q - another program is already using it (Win32 error: {0}).",
+                             "Не удалось зарегистрировать Win+Shift+Q - хоткей уже занят другой программой (код ошибки Win32: {0})."),
         ["AutostartFailed"] = ("Couldn't update autostart in the registry.", "Не удалось изменить автозагрузку в реестре."),
 
         ["SettingsTitle"] = ("SircleToSearch Settings", "Настройки SircleToSearch"),
@@ -37,7 +37,7 @@ public static class Strings
                                        "Быстрее, но Google иногда может попросить капчу"),
         ["SettingsReportBug"] = ("Report a bug", "Пожаловаться на баг"),
         ["SettingsHotkey"] = ("Hotkey", "Хоткей"),
-        ["SettingsHotkeyRecording"] = ("Press a new combo... (Esc to cancel)", "Нажми новую комбинацию... (Esc — отмена)"),
+        ["SettingsHotkeyRecording"] = ("Press a new combo... (Esc to cancel)", "Нажми новую комбинацию... (Esc - отмена)"),
         ["SettingsHotkeyNeedsModifier"] = ("Needs at least one modifier (Ctrl/Alt/Shift/Win)", "Нужен хотя бы один модификатор (Ctrl/Alt/Shift/Win)"),
         ["SettingsHotkeyConflict"] = ("That combo is already taken by another app", "Эта комбинация уже занята другой программой"),
         ["SettingsClose"] = ("Done", "Готово"),
@@ -51,7 +51,7 @@ public static class Strings
         ["SettingsDownload"] = ("Download", "Скачать"),
         ["SettingsUpdateCheckFailed"] = ("Couldn't check for updates", "Не удалось проверить обновления"),
         ["SettingsAutoUpdate"] = ("Update automatically", "Обновлять автоматически"),
-        ["UpdateBalloonText"] = ("Version {0} is available — click to update", "Доступна версия {0} — нажми, чтобы обновить"),
+        ["UpdateBalloonText"] = ("Version {0} is available - click to update", "Доступна версия {0} - нажми, чтобы обновить"),
         ["UpdatePromptQuestion"] = ("Update to version {0}?", "Обновить до версии {0}?"),
         ["UpdatePromptHint"] = ("It'll install right after you finish and close the current search (plus a few seconds).",
                                  "Установится сразу после того, как ты закроешь текущий поиск (плюс пара секунд)."),

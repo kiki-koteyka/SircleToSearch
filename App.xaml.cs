@@ -72,7 +72,7 @@ public partial class App : System.Windows.Application
     private void SetupTrayIcon()
     {
         // Pulled from our own exe (baked in via ApplicationIcon in the csproj) instead
-        // of the generic system icon — same code works before and after publish since
+        // of the generic system icon - same code works before and after publish since
         // it just reads whatever icon is embedded in the running executable.
         System.Drawing.Icon icon;
         try
@@ -156,7 +156,7 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>Fire-and-forget, run once per search request. Cheap and stateless on
-    /// GitHub's end, so no need to throttle the check itself — only the user-visible
+    /// GitHub's end, so no need to throttle the check itself - only the user-visible
     /// notification is deduped (once per newly-seen version per run) so this doesn't
     /// spam a balloon on every single search.</summary>
     private async void CheckForUpdatesInBackground()
@@ -185,7 +185,7 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>Holds off the tray balloon until the search overlay (selection + result)
-    /// is fully closed — popping it up mid-search was distracting, right when the user
+    /// is fully closed - popping it up mid-search was distracting, right when the user
     /// is trying to drag a selection or read the result.</summary>
     private async Task NotifyUpdateWhenIdleAsync(string version)
     {
@@ -197,7 +197,7 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>Entry point for anywhere in the app (background check, manual "Check for
-    /// updates" in Settings) that's found a newer version and wants to offer it — always
+    /// updates" in Settings) that's found a newer version and wants to offer it - always
     /// goes through the same confirm dialog and idle-deferred apply.</summary>
     public void OfferUpdate(string version, string assetUrl)
     {
@@ -224,7 +224,7 @@ public partial class App : System.Windows.Application
     }
 
     /// <summary>Waits for the search overlay to be fully closed and then a further 5
-    /// idle seconds before actually downloading and swapping the exe — never yanks the
+    /// idle seconds before actually downloading and swapping the exe - never yanks the
     /// app out from under an in-progress search.</summary>
     private async Task ApplyUpdateWhenIdleAsync(string assetUrl)
     {
@@ -232,7 +232,7 @@ public partial class App : System.Windows.Application
             await Task.Delay(500);
 
         await Task.Delay(5000);
-        if (_activeOverlay is not null) return; // a new search started during the wait — next check will retry
+        if (_activeOverlay is not null) return; // a new search started during the wait - next check will retry
 
         try
         {

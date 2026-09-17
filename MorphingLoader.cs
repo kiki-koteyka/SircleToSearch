@@ -6,7 +6,7 @@ using Point = System.Windows.Point;
 namespace SircleToSearch;
 
 /// <summary>
-/// Drives a WPF Polygon to render the real Material 3 loading indicator — the shape-morphing
+/// Drives a WPF Polygon to render the real Material 3 loading indicator - the shape-morphing
 /// blob (SoftBurst → Cookie9 → Pentagon → Pill → Sunny → Cookie4 → Oval) that replaced the
 /// classic circular spinner, ported from androidx.compose.material3's actual shape data and
 /// animation constants (see M3Shapes/M3Spring/M3Animator) instead of an approximation.

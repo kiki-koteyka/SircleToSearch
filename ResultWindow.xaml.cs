@@ -32,7 +32,7 @@ public partial class ResultWindow : Window
     {
         InitializeComponent();
 
-        // Sized and parked off-screen BEFORE the first Show() paints a frame — doing
+        // Sized and parked off-screen BEFORE the first Show() paints a frame - doing
         // this in Loaded instead left a visible blink: with no Width/Height/Left/Top
         // set yet, WPF+Windows composite one frame at the OS's default placement for
         // an unpositioned window (roughly left-of-center) before it jumps off-screen.
@@ -42,13 +42,13 @@ public partial class ResultWindow : Window
         _targetLeft = SystemParameters.WorkArea.Right - Width - 24;
         _targetTop = SystemParameters.WorkArea.Bottom - Height;
 
-        // Parked far off any monitor until Reveal() — this window is created and shown
+        // Parked far off any monitor until Reveal() - this window is created and shown
         // (so its WebView2 control gets a real HWND to initialize in) as soon as the
         // overlay opens, well before the user finishes dragging a selection, so
         // PreWarmAsync can eat the WebView2 startup cost while they're still drawing.
         // Opacity=0/Visibility.Hidden tricks both left visible artifacts (DWM ghosts a
         // layered window that hasn't composited a real frame, or the brief window
-        // between Show() and the property taking effect flashes on screen) — physically
+        // between Show() and the property taking effect flashes on screen) - physically
         // parking it off-screen means there's nothing for the compositor to ever draw.
         Left = -5000;
         Top = _targetTop;
@@ -78,7 +78,7 @@ public partial class ResultWindow : Window
         }
         catch (Exception ex)
         {
-            // Not fatal — the real search will just redo this work when it runs.
+            // Not fatal - the real search will just redo this work when it runs.
             AppLog.Error("Прогрев WebView2 не удался", ex);
         }
     }
@@ -99,7 +99,7 @@ public partial class ResultWindow : Window
 
         if (_busy)
         {
-            // A previous search is still in flight — coalesce to the latest crop
+            // A previous search is still in flight - coalesce to the latest crop
             // rather than piling up overlapping WebView2 navigations.
             _pendingJpegBytes = jpegBytes;
             return;
@@ -107,7 +107,7 @@ public partial class ResultWindow : Window
         _ = RunSearchAsync(jpegBytes);
     }
 
-    /// <summary>Slides the result back out of view without closing it — used for the
+    /// <summary>Slides the result back out of view without closing it - used for the
     /// first Esc press (second Esc closes the overlay itself). The WebView2 instance
     /// stays alive so a further selection can slide it back up instantly.</summary>
     public void HideResult()
@@ -159,7 +159,7 @@ public partial class ResultWindow : Window
         }
         finally
         {
-            // No artificial minimum — the spinner shows for exactly as long as the
+            // No artificial minimum - the spinner shows for exactly as long as the
             // real upload+navigate takes, then fades out (see HideLoadingAsync).
             await HideLoadingAsync(errorMessage);
             _busy = false;
@@ -184,7 +184,7 @@ public partial class ResultWindow : Window
     }
 
     /// <summary>Fades the spinner out into either the loaded results page or, if this
-    /// search failed, an error message — so a failure is always visibly reported instead
+    /// search failed, an error message - so a failure is always visibly reported instead
     /// of leaving the window sitting on stale or blank content.</summary>
     private Task HideLoadingAsync(string? errorMessage)
     {
@@ -211,12 +211,12 @@ public partial class ResultWindow : Window
     }
 
     /// <summary>Thrown when Google redirects to its captcha/"sorry" interstitial instead
-    /// of real results — distinct from a generic failure so the user gets a message that
+    /// of real results - distinct from a generic failure so the user gets a message that
     /// actually explains what happened.</summary>
     private sealed class GoogleCaptchaException : Exception;
 
     /// <summary>Bounds an otherwise unbounded wait (a WebView2 event that might just
-    /// never fire — dropped connection, dead renderer, whatever) so a search always
+    /// never fire - dropped connection, dead renderer, whatever) so a search always
     /// eventually resolves to the error state instead of leaving the spinner spinning
     /// forever.</summary>
     private static async Task WaitWithTimeoutAsync(Task task, TimeSpan timeout, string what)
@@ -256,7 +256,7 @@ public partial class ResultWindow : Window
         }
     }
 
-    /// <summary>Ensures CoreWebView2 exists. Idempotent — a no-op after the first call.</summary>
+    /// <summary>Ensures CoreWebView2 exists. Idempotent - a no-op after the first call.</summary>
     private async Task EnsureCoreWebView2Async()
     {
         if (Browser.CoreWebView2 is not null) return;
@@ -264,7 +264,7 @@ public partial class ResultWindow : Window
         var sw = System.Diagnostics.Stopwatch.StartNew();
 
         // EnsureCoreWebView2Async throws if called again with a DIFFERENT
-        // CoreWebView2Environment instance — which a fresh CreateAsync() call always is —
+        // CoreWebView2Environment instance - which a fresh CreateAsync() call always is -
         // hence the CoreWebView2-is-null guard above.
         var userDataFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -275,7 +275,7 @@ public partial class ResultWindow : Window
         Browser.CoreWebView2!.Settings.UserAgent = MobileUserAgent;
         Browser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
 
-        // Deny clipboard permission requests from whatever page loads — nothing in
+        // Deny clipboard permission requests from whatever page loads - nothing in
         // this app writes to the clipboard on purpose, so a results page silently
         // grabbing clipboard-write access (some do, for a "copy query" convenience
         // feature) shouldn't be able to either.
@@ -290,7 +290,7 @@ public partial class ResultWindow : Window
 
         // The results page is narrower here (460px) than any real phone it thinks it's
         // running on, and some elements (long unbroken URLs/strings, tables, images)
-        // don't reflow to that — they force the whole page into horizontal scroll
+        // don't reflow to that - they force the whole page into horizontal scroll
         // instead of just wrapping. Injected before the page's own content on every
         // navigation so it always wins: hide horizontal overflow at the document level
         // and make anything that would've overflowed wrap/shrink instead.
@@ -315,7 +315,7 @@ public partial class ResultWindow : Window
         await EnsureCoreWebView2Async();
 
         // Skip navigating if we're already sitting on a google.com page (pre-warmed,
-        // or a repeat search) — that round trip was pure dead weight every time. A
+        // or a repeat search) - that round trip was pure dead weight every time. A
         // captcha/"sorry" interstitial does NOT count as "already there": if Google
         // flagged a previous search, every later search kept firing from that same
         // stuck captcha page and silently failing forever unless we force a fresh
@@ -342,13 +342,13 @@ public partial class ResultWindow : Window
 
     /// <summary>
     /// Fast path: uploads via a plain HttpClient POST instead of a WebView2-hosted
-    /// fetch() — skips ever navigating WebView2 to the google.com homepage first, which
+    /// fetch() - skips ever navigating WebView2 to the google.com homepage first, which
     /// is noticeably quicker. The catch: the uploaded image is tied to the HttpClient's
     /// own session while WebView2 has a separate cookie jar, so the exact cookies Google
     /// set during the upload get copied into WebView2's CookieManager before navigating,
     /// putting the results page in the same session that actually holds the image. Since
     /// the request never visits google.com in a real browser session first, Google
-    /// occasionally decides it's suspicious and shows a captcha instead of results — that
+    /// occasionally decides it's suspicious and shows a captcha instead of results - that
     /// tradeoff is why this path is opt-in (Settings > Fast search) rather than default.
     /// </summary>
     private async Task NavigateToLensResultsFastAsync(byte[] jpegBytes)
@@ -377,7 +377,7 @@ public partial class ResultWindow : Window
         Browser.CoreWebView2.NavigationCompleted -= OnResultsNavCompleted;
         AppLog.Info($"[perf] Navigate to results page: {sw.ElapsedMilliseconds}ms");
 
-        // A captcha redirect navigates "successfully" as far as WebView2 is concerned —
+        // A captcha redirect navigates "successfully" as far as WebView2 is concerned -
         // it just lands on google.com/sorry/... instead of real results. Catching that
         // here (rather than letting it render silently) is what makes the failure
         // visible to the user instead of looking like the search just did nothing.
@@ -418,7 +418,7 @@ public partial class ResultWindow : Window
     /// <summary>
     /// Yandex path: a single plain HttpClient upload (Yandex's upload endpoint returns
     /// the results-page query string directly as JSON, no separate "visit the homepage
-    /// first" dance needed the way Google's captcha-avoidance requires) — same cookie-
+    /// first" dance needed the way Google's captcha-avoidance requires) - same cookie-
     /// transfer trick as Google's fast path so the results page opens in the session
     /// that actually holds the uploaded image.
     /// </summary>
@@ -472,7 +472,7 @@ public partial class ResultWindow : Window
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
         // As of late 2026 Yandex's upload response no longer hands back a ready-made
-        // results query string — it returns "cbirId" (content-based image retrieval id),
+        // results query string - it returns "cbirId" (content-based image retrieval id),
         // and the results page is reconstructed from that instead.
         var cbirId = doc.RootElement.GetProperty("blocks")[0].GetProperty("params").GetProperty("cbirId").GetString();
         if (string.IsNullOrEmpty(cbirId))
@@ -496,7 +496,7 @@ public partial class ResultWindow : Window
         await EnsureOnGoogleAsync();
 
         // ExecuteScriptAsync's return value does NOT reliably await a Promise on
-        // every WebView2 runtime build — it can hand back the serialized (empty)
+        // every WebView2 runtime build - it can hand back the serialized (empty)
         // Promise object instead of the resolved value. postMessage + WebMessageReceived
         // is the pattern that actually works for getting an async result back to C#.
         var uploadDone = new TaskCompletionSource<string>();
@@ -568,7 +568,7 @@ public partial class ResultWindow : Window
     private void CloseOnce()
     {
         // Windows fires WM_ACTIVATE (and so Deactivated) more than once while a
-        // window is tearing itself down — a second Close() call mid-close throws.
+        // window is tearing itself down - a second Close() call mid-close throws.
         if (_closing) return;
         _closing = true;
         Close();

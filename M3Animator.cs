@@ -1,7 +1,7 @@
 namespace SircleToSearch;
 
 /// <summary>
-/// Drives the Material 3 loading-indicator morph/rotation — ported from
+/// Drives the Material 3 loading-indicator morph/rotation - ported from
 /// LoadingIndicatorAnimatorDelegate.java's actual constants: 650ms per shape,
 /// spring k=200/ζ=0.6, dual rotation (50° constant + 90° spring-driven per cycle).
 /// </summary>

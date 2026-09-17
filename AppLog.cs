@@ -26,7 +26,7 @@ public static class AppLog
         ErrorRaised?.Invoke(message);
     }
 
-    /// <summary>Non-error diagnostic line — used for perf timing. Never raises a tray balloon.</summary>
+    /// <summary>Non-error diagnostic line - used for perf timing. Never raises a tray balloon.</summary>
     public static void Info(string message)
     {
         try

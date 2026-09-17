@@ -8,7 +8,7 @@ namespace SircleToSearch;
 
 /// <summary>
 /// Real in-place self-update: downloads the new exe, then hands off to a small detached
-/// script that waits for this process to exit, swaps the file in, and relaunches — a
+/// script that waits for this process to exit, swaps the file in, and relaunches - a
 /// running exe can't overwrite its own file, so that handoff has to happen outside it.
 /// </summary>
 public static class SelfUpdater

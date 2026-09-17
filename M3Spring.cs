@@ -2,7 +2,7 @@ using System;
 
 namespace SircleToSearch;
 
-/// <summary>Spring physics matching Android's SpringForce — semi-implicit Euler with sub-stepping.</summary>
+/// <summary>Spring physics matching Android's SpringForce - semi-implicit Euler with sub-stepping.</summary>
 public sealed class M3Spring
 {
     private readonly double _k;

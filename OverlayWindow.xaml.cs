@@ -34,7 +34,7 @@ public partial class OverlayWindow : Window
     {
         InitializeComponent();
 
-        // Position and hide BEFORE the first Show() paints a frame — doing this in
+        // Position and hide BEFORE the first Show() paints a frame - doing this in
         // Loaded instead left a visible blink: WPF composites one frame at the
         // default (small, top-left) window rect first, then jumps to fullscreen and
         // fades in, which reads as a flash on hotkey press.
@@ -77,7 +77,7 @@ public partial class OverlayWindow : Window
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
 
         // Create and pre-warm the result window right away, before the user has even
-        // finished dragging a selection — WebView2 startup + the google.com navigation
+        // finished dragging a selection - WebView2 startup + the google.com navigation
         // cost (~600-800ms combined) then happens in the background during that time
         // instead of sitting on the critical path after they release the mouse.
         _resultWindow = new ResultWindow();
@@ -164,7 +164,7 @@ public partial class OverlayWindow : Window
         {
             if (mode == DragMode.Creating)
             {
-                // Accidental click/tiny drag with no prior selection — reset and
+                // Accidental click/tiny drag with no prior selection - reset and
                 // keep waiting for a real gesture.
                 _selection = Rect.Empty;
                 UpdateSelectionVisuals();
@@ -264,7 +264,7 @@ public partial class OverlayWindow : Window
             cropped.Dispose();
             AppLog.Info($"[perf] Crop+encode: {sw.ElapsedMilliseconds}ms");
 
-            // Keep the overlay open — the selection stays on screen so the user can
+            // Keep the overlay open - the selection stays on screen so the user can
             // drag/resize it and re-search, instead of the whole thing vanishing
             // after one shot. Reuse the same (already pre-warmed) result window across
             // re-searches; only recreate it if it somehow got closed independently.
@@ -287,7 +287,7 @@ public partial class OverlayWindow : Window
         var screenshot = _screenshot!;
 
         // No padding: with a precise drag-resizable rectangle (unlike the old freehand
-        // lasso) the user's box IS the intended crop — padding it out was sending
+        // lasso) the user's box IS the intended crop - padding it out was sending
         // noticeably more of the screen than what was actually selected.
         var scaleX = screenshot.Width / ActualWidth;
         var scaleY = screenshot.Height / ActualHeight;
@@ -305,7 +305,7 @@ public partial class OverlayWindow : Window
         }
 
         // Bitmap.Clone(rect) is known to hand back corrupt/garbage pixel data for
-        // some rectangles — drawing into a fresh bitmap is the reliable way to crop.
+        // some rectangles - drawing into a fresh bitmap is the reliable way to crop.
         var result = new Bitmap(pixelRect.Width, pixelRect.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
         using (var g = Graphics.FromImage(result))
         {

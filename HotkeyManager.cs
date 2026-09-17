@@ -39,14 +39,14 @@ public sealed class HotkeyManager : IDisposable
     public HotkeyManager(Modifiers modifiers, uint vk)
     {
         // Plain invisible top-level window (0x0 size, no WS_VISIBLE). HWND_MESSAGE
-        // windows are unreliable for WM_HOTKEY delivery on some setups — this is the
+        // windows are unreliable for WM_HOTKEY delivery on some setups - this is the
         // pattern every WPF global-hotkey library actually ships.
         var parameters = new HwndSourceParameters("SircleToSearchHotkeySink")
         {
             Width = 0,
             Height = 0,
             WindowStyle = 0,
-            ExtendedWindowStyle = 0x80, // WS_EX_TOOLWINDOW — keeps it out of alt-tab/taskbar
+            ExtendedWindowStyle = 0x80, // WS_EX_TOOLWINDOW - keeps it out of alt-tab/taskbar
         };
         _source = new HwndSource(parameters);
         _source.AddHook(WndProc);
