@@ -471,11 +471,14 @@ public partial class ResultWindow : Window
 
         var json = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(json);
-        var queryString = doc.RootElement.GetProperty("blocks")[0].GetProperty("params").GetProperty("url").GetString();
-        if (string.IsNullOrEmpty(queryString))
-            throw new InvalidOperationException("Yandex не вернул URL результата поиска.");
+        // As of late 2026 Yandex's upload response no longer hands back a ready-made
+        // results query string — it returns "cbirId" (content-based image retrieval id),
+        // and the results page is reconstructed from that instead.
+        var cbirId = doc.RootElement.GetProperty("blocks")[0].GetProperty("params").GetProperty("cbirId").GetString();
+        if (string.IsNullOrEmpty(cbirId))
+            throw new InvalidOperationException("Yandex не вернул идентификатор результата поиска.");
 
-        var resultUrl = $"{baseUrl}?{queryString}";
+        var resultUrl = $"{baseUrl}?rpt=imageview&cbir_id={Uri.EscapeDataString(cbirId)}";
         var cookies = cookieContainer.GetCookies(new Uri(baseUrl)).Cast<Cookie>().ToList();
 
         return (resultUrl, cookies);
