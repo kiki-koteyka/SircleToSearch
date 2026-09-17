@@ -71,10 +71,10 @@ public partial class ResultWindow : Window
     {
         try
         {
-            if (AppSettings.Current.FastSearch)
-                await EnsureCoreWebView2Async();
-            else
+            if (AppSettings.Current.Engine == SearchEngine.Google && !AppSettings.Current.FastSearch)
                 await EnsureOnGoogleAsync();
+            else
+                await EnsureCoreWebView2Async();
         }
         catch (Exception ex)
         {
@@ -143,14 +143,16 @@ public partial class ResultWindow : Window
 
         try
         {
-            if (AppSettings.Current.FastSearch)
+            if (AppSettings.Current.Engine == SearchEngine.Yandex)
+                await NavigateToYandexResultsAsync(jpegBytes);
+            else if (AppSettings.Current.FastSearch)
                 await NavigateToLensResultsFastAsync(jpegBytes);
             else
                 await NavigateToLensResultsAsync(jpegBytes);
         }
         catch (Exception ex)
         {
-            AppLog.Error("Загрузка картинки в Google не удалась", ex);
+            AppLog.Error("Загрузка картинки не удалась", ex);
             errorMessage = ex is GoogleCaptchaException
                 ? Strings.Get("ResultErrorCaptcha")
                 : Strings.Get("ResultErrorGeneric");
@@ -254,6 +256,20 @@ public partial class ResultWindow : Window
 
         Browser.CoreWebView2!.Settings.UserAgent = MobileUserAgent;
         Browser.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+
+        // Deny clipboard permission requests from whatever page loads — nothing in
+        // this app writes to the clipboard on purpose, so a results page silently
+        // grabbing clipboard-write access (some do, for a "copy query" convenience
+        // feature) shouldn't be able to either.
+        Browser.CoreWebView2.PermissionRequested += (_, e) =>
+        {
+            if (e.PermissionKind is CoreWebView2PermissionKind.ClipboardRead)
+            {
+                e.State = CoreWebView2PermissionState.Deny;
+                e.Handled = true;
+            }
+        };
+
         AppLog.Info($"[perf] EnsureCoreWebView2: {sw.ElapsedMilliseconds}ms");
     }
 
@@ -359,6 +375,72 @@ public partial class ResultWindow : Window
         var location = response.Headers.Location;
         var resultUrl = location.IsAbsoluteUri ? location.ToString() : "https://www.google.com" + location;
         var cookies = cookieContainer.GetCookies(new Uri("https://www.google.com")).Cast<Cookie>().ToList();
+
+        return (resultUrl, cookies);
+    }
+
+    /// <summary>
+    /// Yandex path: a single plain HttpClient upload (Yandex's upload endpoint returns
+    /// the results-page query string directly as JSON, no separate "visit the homepage
+    /// first" dance needed the way Google's captcha-avoidance requires) — same cookie-
+    /// transfer trick as Google's fast path so the results page opens in the session
+    /// that actually holds the uploaded image.
+    /// </summary>
+    private async Task NavigateToYandexResultsAsync(byte[] jpegBytes)
+    {
+        await EnsureCoreWebView2Async();
+
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var (resultUrl, cookies) = await UploadViaYandexAsync(jpegBytes);
+        AppLog.Info($"[perf] Yandex upload: {sw.ElapsedMilliseconds}ms");
+
+        var cookieManager = Browser.CoreWebView2.CookieManager;
+        foreach (var cookie in cookies)
+        {
+            var wvCookie = cookieManager.CreateCookie(cookie.Name, cookie.Value, cookie.Domain, cookie.Path);
+            wvCookie.IsSecure = cookie.Secure;
+            wvCookie.IsHttpOnly = cookie.HttpOnly;
+            cookieManager.AddOrUpdateCookie(wvCookie);
+        }
+
+        sw.Restart();
+        var resultsLoaded = new TaskCompletionSource();
+        void OnResultsNavCompleted(object? s, CoreWebView2NavigationCompletedEventArgs e) => resultsLoaded.TrySetResult();
+        Browser.CoreWebView2.NavigationCompleted += OnResultsNavCompleted;
+        Browser.CoreWebView2.Navigate(resultUrl);
+        await resultsLoaded.Task;
+        Browser.CoreWebView2.NavigationCompleted -= OnResultsNavCompleted;
+        AppLog.Info($"[perf] Navigate to Yandex results page: {sw.ElapsedMilliseconds}ms");
+    }
+
+    private static async Task<(string ResultUrl, System.Collections.Generic.List<Cookie> Cookies)> UploadViaYandexAsync(byte[] jpegBytes)
+    {
+        const string baseUrl = "https://yandex.com/images/search";
+
+        var cookieContainer = new CookieContainer();
+        var handler = new HttpClientHandler { CookieContainer = cookieContainer };
+        using var client = new HttpClient(handler);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd(MobileUserAgent);
+
+        using var content = new MultipartFormDataContent();
+        var imageContent = new ByteArrayContent(jpegBytes);
+        imageContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        content.Add(imageContent, "upfile", "screenshot.jpg");
+
+        var requestParam = Uri.EscapeDataString("{\"blocks\":[{\"block\":\"b-page_type_search-by-image__link\"}]}");
+        var uploadUrl = $"{baseUrl}?rpt=imageview&format=json&request={requestParam}";
+
+        using var response = await client.PostAsync(uploadUrl, content);
+        response.EnsureSuccessStatusCode();
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var queryString = doc.RootElement.GetProperty("blocks")[0].GetProperty("params").GetProperty("url").GetString();
+        if (string.IsNullOrEmpty(queryString))
+            throw new InvalidOperationException("Yandex не вернул URL результата поиска.");
+
+        var resultUrl = $"{baseUrl}?{queryString}";
+        var cookies = cookieContainer.GetCookies(new Uri(baseUrl)).Cast<Cookie>().ToList();
 
         return (resultUrl, cookies);
     }

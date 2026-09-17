@@ -13,7 +13,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <ui:TitleBar Grid.Row="0" Title="SircleToSearch" ShowMaximize="False" ShowMinimize="False"/>
+        <ui:TitleBar Grid.Row="0" Title="SircleToSearch — by Kiki" ShowMaximize="False" ShowMinimize="False"/>
 
         <StackPanel Grid.Row="1" Margin="20,4,20,20">
             <TextBlock x:Name="WelcomeText" TextWrapping="Wrap" Opacity="0.7" FontSize="13" Margin="0,0,0,16"/>
@@ -36,7 +36,17 @@
                                  Checked="AutostartToggle_Changed" Unchecked="AutostartToggle_Changed"/>
             </ui:CardControl>
 
-            <ui:CardControl Margin="0,0,0,8">
+            <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Search24}">
+                <ui:CardControl.Header>
+                    <TextBlock x:Name="SearchEngineLabel" VerticalAlignment="Center" FontSize="14"/>
+                </ui:CardControl.Header>
+                <ComboBox x:Name="SearchEngineCombo" Width="160" SelectionChanged="SearchEngineCombo_SelectionChanged">
+                    <ComboBoxItem x:Name="SearchEngineGoogleItem" Tag="Google"/>
+                    <ComboBoxItem Content="Yandex" Tag="Yandex"/>
+                </ComboBox>
+            </ui:CardControl>
+
+            <ui:CardControl x:Name="FastSearchCard" Margin="0,0,0,8">
                 <ui:CardControl.Header>
                     <StackPanel>
                         <TextBlock x:Name="FastSearchLabel" VerticalAlignment="Center" FontSize="14"/>
@@ -47,10 +57,18 @@
                                  Checked="FastSearchToggle_Changed" Unchecked="FastSearchToggle_Changed"/>
             </ui:CardControl>
 
-            <ui:CardControl Margin="0,0,0,8">
+            <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Keyboard24}">
                 <ui:CardControl.Header>
-                    <TextBlock x:Name="HotkeyInfoText" VerticalAlignment="Center" FontSize="14"/>
+                    <TextBlock x:Name="HotkeyLabel" VerticalAlignment="Center" FontSize="14"/>
                 </ui:CardControl.Header>
+                <Border x:Name="HotkeyBox" Background="#F1F3F4" CornerRadius="6" Padding="12,6"
+                        Cursor="Hand" Focusable="True" MinWidth="140" HorizontalAlignment="Right"
+                        MouseLeftButtonDown="HotkeyBox_MouseLeftButtonDown"
+                        GotFocus="HotkeyBox_GotFocus" LostFocus="HotkeyBox_LostFocus"
+                        PreviewKeyDown="HotkeyBox_PreviewKeyDown">
+                    <TextBlock x:Name="HotkeyDisplayText" FontFamily="Consolas" FontSize="13"
+                               HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                </Border>
             </ui:CardControl>
 
             <ui:CardControl Margin="0,0,0,16" Icon="{ui:SymbolIcon ArrowCounterclockwise24}">

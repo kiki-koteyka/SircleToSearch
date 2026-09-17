@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using Wpf.Ui.Controls;
 
 namespace SircleToSearch;
@@ -12,9 +13,11 @@ public partial class SettingsWindow : FluentWindow
     private const string RepoUrl = "https://github.com/kiki-koteyka/SircleToSearch";
     private const string AuthorUrl = "https://github.com/kiki-koteyka";
     private bool _loading = true;
+    private bool _recordingHotkey;
     private string? _pendingUpdateAssetUrl;
 
     public event Action? LanguageChanged;
+    public event Action? HotkeyRebound;
 
     public SettingsWindow()
     {
@@ -23,8 +26,11 @@ public partial class SettingsWindow : FluentWindow
         {
             LanguageCombo.SelectedIndex = AppSettings.Current.Language == "ru" ? 1 : 0;
             AutostartToggle.IsChecked = Autostart.IsEnabled();
+            SearchEngineCombo.SelectedIndex = AppSettings.Current.Engine == SearchEngine.Yandex ? 1 : 0;
             FastSearchToggle.IsChecked = AppSettings.Current.FastSearch;
             ApplyStrings();
+            RefreshHotkeyDisplay();
+            UpdateFastSearchVisibility();
             _loading = false;
         };
     }
@@ -35,9 +41,11 @@ public partial class SettingsWindow : FluentWindow
         WelcomeText.Text = Strings.Get("SettingsWelcome");
         LanguageLabel.Text = Strings.Get("SettingsLanguage");
         AutostartLabel.Text = Strings.Get("SettingsAutostart");
+        SearchEngineLabel.Text = Strings.Get("SettingsSearchEngine");
+        SearchEngineGoogleItem.Content = Strings.Get("SettingsSearchEngineGoogle");
         FastSearchLabel.Text = Strings.Get("SettingsFastSearch");
         FastSearchHint.Text = Strings.Get("SettingsFastSearchHint");
-        HotkeyInfoText.Text = Strings.Get("SettingsHotkeyInfo");
+        HotkeyLabel.Text = Strings.Get("SettingsHotkey");
         ReportBugButton.Content = Strings.Get("SettingsReportBug");
         CloseButton.Content = Strings.Get("SettingsClose");
         GitHubButton.Content = Strings.Get("SettingsGitHub");
@@ -49,6 +57,70 @@ public partial class SettingsWindow : FluentWindow
             : Strings.Get("SettingsUpdateNow");
     }
 
+    private void RefreshHotkeyDisplay()
+    {
+        HotkeyDisplayText.Text = HotkeyManager.Format(
+            (HotkeyManager.Modifiers)AppSettings.Current.HotkeyModifiers, AppSettings.Current.HotkeyVk);
+    }
+
+    private void HotkeyBox_MouseLeftButtonDown(object sender, MouseButtonEventArgs e) => HotkeyBox.Focus();
+
+    private void HotkeyBox_GotFocus(object sender, RoutedEventArgs e)
+    {
+        _recordingHotkey = true;
+        HotkeyDisplayText.Text = Strings.Get("SettingsHotkeyRecording");
+    }
+
+    private void HotkeyBox_LostFocus(object sender, RoutedEventArgs e)
+    {
+        _recordingHotkey = false;
+        RefreshHotkeyDisplay();
+    }
+
+    private void HotkeyBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (!_recordingHotkey) return;
+        e.Handled = true;
+
+        var key = e.Key == Key.System ? e.SystemKey : e.Key;
+        if (key is Key.LWin or Key.RWin or Key.LeftCtrl or Key.RightCtrl
+            or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift)
+            return; // still just a modifier on its own — keep waiting for a real key
+
+        if (key == Key.Escape)
+        {
+            HotkeyBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+            return;
+        }
+
+        var modifiers = HotkeyManager.Modifiers.None;
+        if (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) modifiers |= HotkeyManager.Modifiers.Control;
+        if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift)) modifiers |= HotkeyManager.Modifiers.Shift;
+        if (Keyboard.IsKeyDown(Key.LeftAlt) || Keyboard.IsKeyDown(Key.RightAlt)) modifiers |= HotkeyManager.Modifiers.Alt;
+        if (Keyboard.IsKeyDown(Key.LWin) || Keyboard.IsKeyDown(Key.RWin)) modifiers |= HotkeyManager.Modifiers.Win;
+
+        if (modifiers == HotkeyManager.Modifiers.None)
+        {
+            HotkeyDisplayText.Text = Strings.Get("SettingsHotkeyNeedsModifier");
+            return; // keep recording — a bare letter key isn't a usable global hotkey
+        }
+
+        var vk = (uint)KeyInterop.VirtualKeyFromKey(key);
+        var app = (App)System.Windows.Application.Current;
+        if (app.HotkeyManager is null || !app.HotkeyManager.TryRebind(modifiers, vk))
+        {
+            HotkeyDisplayText.Text = Strings.Get("SettingsHotkeyConflict");
+            return; // keep recording so they can try a different combo
+        }
+
+        AppSettings.Current.HotkeyModifiers = (uint)modifiers;
+        AppSettings.Current.HotkeyVk = vk;
+        AppSettings.Current.Save();
+        HotkeyRebound?.Invoke();
+
+        HotkeyBox.MoveFocus(new TraversalRequest(FocusNavigationDirection.Next));
+    }
+
     private void LanguageCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (_loading) return;
@@ -58,6 +130,26 @@ public partial class SettingsWindow : FluentWindow
         AppSettings.Current.Save();
         ApplyStrings();
         LanguageChanged?.Invoke();
+    }
+
+    private void SearchEngineCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (_loading) return;
+        if (SearchEngineCombo.SelectedItem is not System.Windows.Controls.ComboBoxItem item) return;
+
+        AppSettings.Current.Engine = (string)item.Tag == "Yandex" ? SearchEngine.Yandex : SearchEngine.Google;
+        AppSettings.Current.Save();
+        UpdateFastSearchVisibility();
+    }
+
+    /// <summary>The fast-vs-reliable tradeoff only exists for Google's captcha-avoidance
+    /// dance — Yandex's upload flow doesn't have an equivalent, so hide the toggle
+    /// instead of leaving a control on screen that does nothing.</summary>
+    private void UpdateFastSearchVisibility()
+    {
+        FastSearchCard.Visibility = AppSettings.Current.Engine == SearchEngine.Google
+            ? Visibility.Visible
+            : Visibility.Collapsed;
     }
 
     private void FastSearchToggle_Changed(object sender, RoutedEventArgs e)
