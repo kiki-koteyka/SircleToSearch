@@ -2,5 +2,5 @@ namespace SircleToSearch;
 
 public static class AppVersion
 {
-    public const string Current = "1.9";
+    public const string Current = "1.10";
 }
