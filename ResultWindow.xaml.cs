@@ -215,6 +215,24 @@ public partial class ResultWindow : Window
     /// actually explains what happened.</summary>
     private sealed class GoogleCaptchaException : Exception;
 
+    /// <summary>Bounds an otherwise unbounded wait (a WebView2 event that might just
+    /// never fire — dropped connection, dead renderer, whatever) so a search always
+    /// eventually resolves to the error state instead of leaving the spinner spinning
+    /// forever.</summary>
+    private static async Task WaitWithTimeoutAsync(Task task, TimeSpan timeout, string what)
+    {
+        if (await Task.WhenAny(task, Task.Delay(timeout)) != task)
+            throw new TimeoutException($"{what}: нет ответа за {timeout.TotalSeconds:0}с.");
+        await task; // re-await to propagate a faulted task's exception, not swallow it
+    }
+
+    private static async Task<T> WaitWithTimeoutAsync<T>(Task<T> task, TimeSpan timeout, string what)
+    {
+        if (await Task.WhenAny(task, Task.Delay(timeout)) != task)
+            throw new TimeoutException($"{what}: нет ответа за {timeout.TotalSeconds:0}с.");
+        return await task;
+    }
+
     private static bool IsCaptchaUrl(string? url) =>
         url is not null && url.Contains("google.com/sorry/", StringComparison.OrdinalIgnoreCase);
 
@@ -312,7 +330,7 @@ public partial class ResultWindow : Window
             void OnNavCompleted(object? s, CoreWebView2NavigationCompletedEventArgs e) => navigated.TrySetResult();
             Browser.CoreWebView2.NavigationCompleted += OnNavCompleted;
             Browser.CoreWebView2.Navigate("https://www.google.com/");
-            await navigated.Task;
+            await WaitWithTimeoutAsync(navigated.Task, TimeSpan.FromSeconds(20), "Переход на google.com");
             Browser.CoreWebView2.NavigationCompleted -= OnNavCompleted;
             AppLog.Info($"[perf] Navigate to google.com: {sw.ElapsedMilliseconds}ms");
         }
@@ -355,7 +373,7 @@ public partial class ResultWindow : Window
         void OnResultsNavCompleted(object? s, CoreWebView2NavigationCompletedEventArgs e) => resultsLoaded.TrySetResult();
         Browser.CoreWebView2.NavigationCompleted += OnResultsNavCompleted;
         Browser.CoreWebView2.Navigate(resultUrl);
-        await resultsLoaded.Task;
+        await WaitWithTimeoutAsync(resultsLoaded.Task, TimeSpan.FromSeconds(20), "Загрузка страницы результатов");
         Browser.CoreWebView2.NavigationCompleted -= OnResultsNavCompleted;
         AppLog.Info($"[perf] Navigate to results page: {sw.ElapsedMilliseconds}ms");
 
@@ -375,7 +393,7 @@ public partial class ResultWindow : Window
             CookieContainer = cookieContainer,
             AllowAutoRedirect = false,
         };
-        using var client = new HttpClient(handler);
+        using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
         client.DefaultRequestHeaders.UserAgent.ParseAdd(MobileUserAgent);
 
         using var content = new MultipartFormDataContent();
@@ -426,7 +444,7 @@ public partial class ResultWindow : Window
         void OnResultsNavCompleted(object? s, CoreWebView2NavigationCompletedEventArgs e) => resultsLoaded.TrySetResult();
         Browser.CoreWebView2.NavigationCompleted += OnResultsNavCompleted;
         Browser.CoreWebView2.Navigate(resultUrl);
-        await resultsLoaded.Task;
+        await WaitWithTimeoutAsync(resultsLoaded.Task, TimeSpan.FromSeconds(20), "Загрузка страницы результатов");
         Browser.CoreWebView2.NavigationCompleted -= OnResultsNavCompleted;
         AppLog.Info($"[perf] Navigate to Yandex results page: {sw.ElapsedMilliseconds}ms");
     }
@@ -437,7 +455,7 @@ public partial class ResultWindow : Window
 
         var cookieContainer = new CookieContainer();
         var handler = new HttpClientHandler { CookieContainer = cookieContainer };
-        using var client = new HttpClient(handler);
+        using var client = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(15) };
         client.DefaultRequestHeaders.UserAgent.ParseAdd(MobileUserAgent);
 
         using var content = new MultipartFormDataContent();
@@ -509,7 +527,7 @@ public partial class ResultWindow : Window
 
         var sw = System.Diagnostics.Stopwatch.StartNew();
         await Browser.CoreWebView2.ExecuteScriptAsync(script);
-        var messageJson = await uploadDone.Task;
+        var messageJson = await WaitWithTimeoutAsync(uploadDone.Task, TimeSpan.FromSeconds(20), "Загрузка картинки");
         Browser.CoreWebView2.WebMessageReceived -= OnMessage;
         AppLog.Info($"[perf] Upload fetch: {sw.ElapsedMilliseconds}ms");
 
@@ -527,7 +545,7 @@ public partial class ResultWindow : Window
         void OnResultsNavCompleted(object? s, CoreWebView2NavigationCompletedEventArgs e) => resultsLoaded.TrySetResult();
         Browser.CoreWebView2.NavigationCompleted += OnResultsNavCompleted;
         Browser.CoreWebView2.Navigate(resultUrl);
-        await resultsLoaded.Task;
+        await WaitWithTimeoutAsync(resultsLoaded.Task, TimeSpan.FromSeconds(20), "Загрузка страницы результатов");
         Browser.CoreWebView2.NavigationCompleted -= OnResultsNavCompleted;
         AppLog.Info($"[perf] Navigate to results page: {sw.ElapsedMilliseconds}ms");
 
