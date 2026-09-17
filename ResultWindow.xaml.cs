@@ -46,6 +46,7 @@ public partial class ResultWindow : Window
         {
             if (e.Key == Key.Escape) EscapeRequested?.Invoke();
         };
+        Closed += (_, _) => _loader?.Stop();
     }
 
     public event Action? EscapeRequested;
