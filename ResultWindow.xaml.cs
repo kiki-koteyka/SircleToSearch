@@ -121,6 +121,7 @@ public partial class ResultWindow : Window
         _busy = true;
         SetStatus(searching: true);
         ShowLoading();
+        string? errorMessage = null;
 
         try
         {
@@ -132,12 +133,15 @@ public partial class ResultWindow : Window
         catch (Exception ex)
         {
             AppLog.Error("Загрузка картинки в Google не удалась", ex);
+            errorMessage = ex is GoogleCaptchaException
+                ? Strings.Get("ResultErrorCaptcha")
+                : Strings.Get("ResultErrorGeneric");
         }
         finally
         {
             // No artificial minimum — the spinner shows for exactly as long as the
             // real upload+navigate takes, then fades out (see HideLoadingAsync).
-            await HideLoadingAsync();
+            await HideLoadingAsync(errorMessage);
             _busy = false;
             SetStatus(searching: false);
         }
@@ -152,26 +156,47 @@ public partial class ResultWindow : Window
     private void ShowLoading()
     {
         Browser.Visibility = Visibility.Collapsed;
+        ErrorOverlay.Visibility = Visibility.Collapsed;
         LoadingOverlay.BeginAnimation(OpacityProperty, null);
         LoadingOverlay.Opacity = 1;
         LoadingOverlay.Visibility = Visibility.Visible;
         _loader?.Start();
     }
 
-    private Task HideLoadingAsync()
+    /// <summary>Fades the spinner out into either the loaded results page or, if this
+    /// search failed, an error message — so a failure is always visibly reported instead
+    /// of leaving the window sitting on stale or blank content.</summary>
+    private Task HideLoadingAsync(string? errorMessage)
     {
         var tcs = new TaskCompletionSource();
         var fade = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(400));
         fade.Completed += (_, _) =>
         {
             LoadingOverlay.Visibility = Visibility.Collapsed;
-            Browser.Visibility = Visibility.Visible;
+            if (errorMessage is not null)
+            {
+                ErrorText.Text = errorMessage;
+                ErrorOverlay.Visibility = Visibility.Visible;
+                Browser.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                Browser.Visibility = Visibility.Visible;
+            }
             _loader?.Stop();
             tcs.TrySetResult();
         };
         LoadingOverlay.BeginAnimation(OpacityProperty, fade);
         return tcs.Task;
     }
+
+    /// <summary>Thrown when Google redirects to its captcha/"sorry" interstitial instead
+    /// of real results — distinct from a generic failure so the user gets a message that
+    /// actually explains what happened.</summary>
+    private sealed class GoogleCaptchaException : Exception;
+
+    private static bool IsCaptchaUrl(string? url) =>
+        url is not null && url.Contains("google.com/sorry/", StringComparison.OrdinalIgnoreCase);
 
     private void SetStatus(bool searching)
     {
@@ -220,9 +245,14 @@ public partial class ResultWindow : Window
         await EnsureCoreWebView2Async();
 
         // Skip navigating if we're already sitting on a google.com page (pre-warmed,
-        // or a repeat search) — that round trip was pure dead weight every time.
+        // or a repeat search) — that round trip was pure dead weight every time. A
+        // captcha/"sorry" interstitial does NOT count as "already there": if Google
+        // flagged a previous search, every later search kept firing from that same
+        // stuck captcha page and silently failing forever unless we force a fresh
+        // navigation to shake it loose.
         var onGoogle = Uri.TryCreate(Browser.CoreWebView2.Source, UriKind.Absolute, out var currentUri)
-            && currentUri.Host.EndsWith("google.com", StringComparison.OrdinalIgnoreCase);
+            && currentUri.Host.EndsWith("google.com", StringComparison.OrdinalIgnoreCase)
+            && !IsCaptchaUrl(currentUri.AbsoluteUri);
         if (!onGoogle)
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -276,6 +306,13 @@ public partial class ResultWindow : Window
         await resultsLoaded.Task;
         Browser.CoreWebView2.NavigationCompleted -= OnResultsNavCompleted;
         AppLog.Info($"[perf] Navigate to results page: {sw.ElapsedMilliseconds}ms");
+
+        // A captcha redirect navigates "successfully" as far as WebView2 is concerned —
+        // it just lands on google.com/sorry/... instead of real results. Catching that
+        // here (rather than letting it render silently) is what makes the failure
+        // visible to the user instead of looking like the search just did nothing.
+        if (IsCaptchaUrl(Browser.CoreWebView2.Source))
+            throw new GoogleCaptchaException();
     }
 
     private static async Task<(string ResultUrl, System.Collections.Generic.List<Cookie> Cookies)> UploadViaHttpAsync(byte[] jpegBytes)
@@ -375,6 +412,11 @@ public partial class ResultWindow : Window
         await resultsLoaded.Task;
         Browser.CoreWebView2.NavigationCompleted -= OnResultsNavCompleted;
         AppLog.Info($"[perf] Navigate to results page: {sw.ElapsedMilliseconds}ms");
+
+        // See the fast-path version of this check: a captcha redirect still counts as a
+        // "successful" WebView2 navigation, so it has to be caught explicitly here too.
+        if (IsCaptchaUrl(Browser.CoreWebView2.Source))
+            throw new GoogleCaptchaException();
     }
 
     private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

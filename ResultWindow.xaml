@@ -46,6 +46,17 @@
                          HorizontalAlignment="Center" VerticalAlignment="Center"
                          Width="48" Height="48"/>
             </Border>
+
+            <!-- Shown instead of the browser when a search fails outright, so a failure
+                 (e.g. Google showing a captcha) reads as "something went wrong, retry"
+                 instead of the window just silently sitting on stale/no content. -->
+            <Border x:Name="ErrorOverlay" Grid.Row="1" Background="White" CornerRadius="0,0,16,16"
+                    Visibility="Collapsed">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="320">
+                    <TextBlock x:Name="ErrorText" TextWrapping="Wrap" TextAlignment="Center"
+                               FontFamily="Segoe UI" FontSize="13" Foreground="#5F6368"/>
+                </StackPanel>
+            </Border>
         </Grid>
     </Border>
 </Window>
