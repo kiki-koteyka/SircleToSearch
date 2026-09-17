@@ -47,7 +47,16 @@ public partial class OverlayWindow : Window
         Loaded += OverlayWindow_Loaded;
         KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Escape) Close();
+            if (e.Key == Key.Escape)
+            {
+                // First Esc just dismisses the result (if one's showing) so the user can
+                // keep adjusting the selection; a second Esc (nothing left to dismiss)
+                // closes the overlay itself, same as before.
+                if (_resultWindow?.IsResultVisible == true)
+                    _resultWindow.HideResult();
+                else
+                    Close();
+            }
             else if (e.Key == Key.Enter && !_selection.IsEmpty) StartSearch(_selection);
         };
     }

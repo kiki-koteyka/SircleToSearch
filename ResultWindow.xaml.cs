@@ -83,7 +83,11 @@ public partial class ResultWindow : Window
         }
     }
 
-    /// <summary>Shows the window (sliding up the first time) and runs a search with this crop.</summary>
+    /// <summary>Whether the window is currently slid into view (as opposed to hidden via
+    /// <see cref="HideResult"/> or never yet shown).</summary>
+    public bool IsResultVisible => _revealed;
+
+    /// <summary>Shows the window (sliding up if it was hidden) and runs a search with this crop.</summary>
     public void ShowSearch(byte[] jpegBytes)
     {
         _jpegBytes = jpegBytes;
@@ -101,6 +105,20 @@ public partial class ResultWindow : Window
             return;
         }
         _ = RunSearchAsync(jpegBytes);
+    }
+
+    /// <summary>Slides the result back out of view without closing it — used for the
+    /// first Esc press (second Esc closes the overlay itself). The WebView2 instance
+    /// stays alive so a further selection can slide it back up instantly.</summary>
+    public void HideResult()
+    {
+        if (!_revealed) return;
+        _revealed = false;
+        var slideDown = new DoubleAnimation(Top, SystemParameters.WorkArea.Bottom, TimeSpan.FromMilliseconds(200))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
+        };
+        BeginAnimation(TopProperty, slideDown);
     }
 
     private void Reveal()
