@@ -4,8 +4,6 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Animation;
-using System.Windows.Threading;
 using Wpf.Ui.Controls;
 
 namespace SircleToSearch;
@@ -19,11 +17,10 @@ public partial class SettingsWindow : FluentWindow
     private bool _recordingHotkey;
 
     private double _scrollBaseOffset;
-    private double _scrollPendingTarget;
-    private bool _scrollAnimating;
-    private int _scrollGeneration;
-    private double _pendingWheelDelta;
-    private bool _wheelUpdateScheduled;
+    private double _scrollVirtualOffset;
+    private double _scrollVelocity;
+    private bool _scrollMomentumRunning;
+    private DateTime _scrollLastFrameTime;
 
     public event Action? LanguageChanged;
     public event Action? HotkeyRebound;
@@ -86,61 +83,55 @@ public partial class SettingsWindow : FluentWindow
         ScrollThumb.Height = Math.Min(Math.Max(24, trackHeight * (viewport / extent)), trackHeight);
         ScrollThumb.Visibility = viewport >= extent ? Visibility.Collapsed : Visibility.Visible;
 
-        if (!_scrollAnimating)
+        if (!_scrollMomentumRunning)
             ScrollThumbTransform.Y = OffsetToThumbY(SettingsScrollViewer.VerticalOffset);
     }
 
     private void SettingsScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         e.Handled = true;
-        _pendingWheelDelta += e.Delta;
 
-        if (_wheelUpdateScheduled) return;
-        _wheelUpdateScheduled = true;
-        Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(ApplyPendingWheelScroll));
-    }
-
-    private void ApplyPendingWheelScroll()
-    {
-        _wheelUpdateScheduled = false;
-        var delta = _pendingWheelDelta;
-        _pendingWheelDelta = 0;
-
-        if (!_scrollAnimating)
+        if (!_scrollMomentumRunning)
         {
             _scrollBaseOffset = SettingsScrollViewer.VerticalOffset;
-            _scrollPendingTarget = _scrollBaseOffset;
+            _scrollVirtualOffset = _scrollBaseOffset;
         }
 
-        _scrollPendingTarget = Math.Clamp(_scrollPendingTarget - delta, 0, SettingsScrollViewer.ScrollableHeight);
+        _scrollVelocity += -e.Delta / 120.0 * 2200.0;
 
-        var duration = TimeSpan.FromMilliseconds(280);
-        var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+        if (!_scrollMomentumRunning)
+        {
+            _scrollMomentumRunning = true;
+            _scrollLastFrameTime = DateTime.UtcNow;
+            CompositionTarget.Rendering += OnScrollMomentumFrame;
+        }
+    }
 
-        var contentAnimation = new DoubleAnimation(SettingsContentTransform.Y, _scrollBaseOffset - _scrollPendingTarget, duration)
-        {
-            EasingFunction = ease
-        };
-        var thumbAnimation = new DoubleAnimation(ScrollThumbTransform.Y, OffsetToThumbY(_scrollPendingTarget), duration)
-        {
-            EasingFunction = ease
-        };
+    private void OnScrollMomentumFrame(object? sender, EventArgs e)
+    {
+        var now = DateTime.UtcNow;
+        var dt = Math.Min((now - _scrollLastFrameTime).TotalSeconds, 0.05);
+        _scrollLastFrameTime = now;
 
-        _scrollAnimating = true;
-        var generation = ++_scrollGeneration;
-        contentAnimation.Completed += (_, _) =>
+        _scrollVirtualOffset += _scrollVelocity * dt;
+        _scrollVelocity *= Math.Exp(-10.0 * dt);
+
+        var max = SettingsScrollViewer.ScrollableHeight;
+        if (_scrollVirtualOffset < 0) { _scrollVirtualOffset = 0; _scrollVelocity = 0; }
+        else if (_scrollVirtualOffset > max) { _scrollVirtualOffset = max; _scrollVelocity = 0; }
+
+        SettingsContentTransform.Y = _scrollBaseOffset - _scrollVirtualOffset;
+        ScrollThumbTransform.Y = OffsetToThumbY(_scrollVirtualOffset);
+
+        if (Math.Abs(_scrollVelocity) < 4.0)
         {
-            if (generation != _scrollGeneration) return;
-            _scrollAnimating = false;
-            SettingsContentTransform.BeginAnimation(TranslateTransform.YProperty, null);
+            CompositionTarget.Rendering -= OnScrollMomentumFrame;
+            _scrollMomentumRunning = false;
+            _scrollVelocity = 0;
             SettingsContentTransform.Y = 0;
-            SettingsScrollViewer.ScrollToVerticalOffset(_scrollPendingTarget);
-            ScrollThumbTransform.BeginAnimation(TranslateTransform.YProperty, null);
-            ScrollThumbTransform.Y = OffsetToThumbY(_scrollPendingTarget);
-        };
-
-        SettingsContentTransform.BeginAnimation(TranslateTransform.YProperty, contentAnimation, HandoffBehavior.SnapshotAndReplace);
-        ScrollThumbTransform.BeginAnimation(TranslateTransform.YProperty, thumbAnimation, HandoffBehavior.SnapshotAndReplace);
+            SettingsScrollViewer.ScrollToVerticalOffset(_scrollVirtualOffset);
+            ScrollThumbTransform.Y = OffsetToThumbY(_scrollVirtualOffset);
+        }
     }
 
     private void RefreshHotkeyDisplay()
