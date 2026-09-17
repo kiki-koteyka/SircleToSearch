@@ -10,7 +10,7 @@ public static class UpdateChecker
     private const string LatestReleaseApiUrl =
         "https://api.github.com/repos/kiki-koteyka/SircleToSearch/releases/latest";
 
-    public sealed record Result(bool UpdateAvailable, string LatestVersion, string ReleaseUrl);
+    public sealed record Result(bool UpdateAvailable, string LatestVersion, string ReleaseUrl, string? AssetDownloadUrl);
 
     /// <summary>Manual check only — never called automatically. GitHub API requires a User-Agent.</summary>
     public static async Task<Result> CheckAsync()
@@ -27,7 +27,20 @@ public static class UpdateChecker
             : "";
         var latestVersion = tag.TrimStart('v', 'V');
 
-        return new Result(IsNewer(latestVersion, AppVersion.Current), latestVersion, url);
+        string? assetUrl = null;
+        if (doc.RootElement.TryGetProperty("assets", out var assets))
+        {
+            foreach (var asset in assets.EnumerateArray())
+            {
+                if (asset.GetProperty("name").GetString() == "SircleToSearch.exe")
+                {
+                    assetUrl = asset.GetProperty("browser_download_url").GetString();
+                    break;
+                }
+            }
+        }
+
+        return new Result(IsNewer(latestVersion, AppVersion.Current), latestVersion, url, assetUrl);
     }
 
     private static bool IsNewer(string latest, string current)

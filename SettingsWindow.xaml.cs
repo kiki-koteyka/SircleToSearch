@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 using Wpf.Ui.Controls;
 
 namespace SircleToSearch;
@@ -12,7 +12,7 @@ public partial class SettingsWindow : FluentWindow
     private const string RepoUrl = "https://github.com/kiki-koteyka/SircleToSearch";
     private const string AuthorUrl = "https://github.com/kiki-koteyka";
     private bool _loading = true;
-    private MouseButtonEventHandler? _updateLinkHandler;
+    private string? _pendingUpdateAssetUrl;
 
     public event Action? LanguageChanged;
 
@@ -44,7 +44,9 @@ public partial class SettingsWindow : FluentWindow
         AuthorButton.Content = Strings.Get("SettingsAuthor");
         BySomeoneText.Text = Strings.Get("SettingsBySomeone");
         VersionText.Text = Strings.Get("SettingsVersion", AppVersion.Current);
-        CheckUpdateButton.Content = Strings.Get("SettingsCheckUpdate");
+        CheckUpdateButton.Content = _pendingUpdateAssetUrl is null
+            ? Strings.Get("SettingsCheckUpdate")
+            : Strings.Get("SettingsUpdateNow");
     }
 
     private void LanguageCombo_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -83,32 +85,31 @@ public partial class SettingsWindow : FluentWindow
 
     private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
     {
+        // Second click, once an update's been found: apply it instead of checking again.
+        if (_pendingUpdateAssetUrl is { } assetUrl)
+        {
+            await ApplyUpdateAsync(assetUrl);
+            return;
+        }
+
         CheckUpdateButton.IsEnabled = false;
         UpdateStatusText.Text = Strings.Get("SettingsCheckingUpdate");
-
-        // Each check re-wires this link fresh — without removing the old handler first,
-        // clicking "Check for updates" repeatedly stacked one MouseLeftButtonDown
-        // subscription per check, so a single click on the link would open the download
-        // page that many times over.
-        if (_updateLinkHandler is not null)
-        {
-            UpdateStatusText.MouseLeftButtonDown -= _updateLinkHandler;
-            _updateLinkHandler = null;
-        }
-        UpdateStatusText.Cursor = System.Windows.Input.Cursors.Arrow;
-        UpdateStatusText.TextDecorations = null;
 
         try
         {
             var result = await UpdateChecker.CheckAsync();
-            if (result.UpdateAvailable)
+            if (result.UpdateAvailable && result.AssetDownloadUrl is not null)
             {
+                _pendingUpdateAssetUrl = result.AssetDownloadUrl;
                 UpdateStatusText.Text = Strings.Get("SettingsUpdateAvailable", result.LatestVersion);
-                var downloadUrl = result.ReleaseUrl;
-                UpdateStatusText.Cursor = System.Windows.Input.Cursors.Hand;
-                UpdateStatusText.TextDecorations = TextDecorations.Underline;
-                _updateLinkHandler = (_, _) => OpenUrl(downloadUrl);
-                UpdateStatusText.MouseLeftButtonDown += _updateLinkHandler;
+                CheckUpdateButton.Content = Strings.Get("SettingsUpdateNow");
+            }
+            else if (result.UpdateAvailable)
+            {
+                // Newer tag exists but has no matching exe asset (e.g. a draft/partial
+                // release) — nothing to self-update from, point at the release page instead.
+                UpdateStatusText.Text = Strings.Get("SettingsUpdateAvailable", result.LatestVersion);
+                OpenUrl(result.ReleaseUrl);
             }
             else
             {
@@ -122,6 +123,27 @@ public partial class SettingsWindow : FluentWindow
         }
         finally
         {
+            CheckUpdateButton.IsEnabled = true;
+        }
+    }
+
+    private async Task ApplyUpdateAsync(string assetUrl)
+    {
+        CheckUpdateButton.IsEnabled = false;
+        var progress = new Progress<double>(p =>
+            UpdateStatusText.Text = Strings.Get("SettingsDownloadingUpdate", (int)(p * 100)));
+
+        try
+        {
+            UpdateStatusText.Text = Strings.Get("SettingsDownloadingUpdate", 0);
+            // On success this shuts the whole app down to hand off to the relaunch
+            // script — nothing after this line runs.
+            await SelfUpdater.DownloadAndRestartAsync(assetUrl, progress);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Не удалось применить обновление", ex);
+            UpdateStatusText.Text = Strings.Get("SettingsUpdateCheckFailed");
             CheckUpdateButton.IsEnabled = true;
         }
     }

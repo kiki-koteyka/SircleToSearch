@@ -41,6 +41,8 @@ public static class Strings
         ["SettingsCheckingUpdate"] = ("Checking...", "Проверяю..."),
         ["SettingsUpToDate"] = ("You're on the latest version", "У тебя последняя версия"),
         ["SettingsUpdateAvailable"] = ("Version {0} is available", "Доступна версия {0}"),
+        ["SettingsUpdateNow"] = ("Update now", "Обновить сейчас"),
+        ["SettingsDownloadingUpdate"] = ("Downloading update... {0}%", "Скачиваю обновление... {0}%"),
         ["SettingsDownload"] = ("Download", "Скачать"),
         ["SettingsUpdateCheckFailed"] = ("Couldn't check for updates", "Не удалось проверить обновления"),
         ["SettingsGitHub"] = ("GitHub", "GitHub"),
