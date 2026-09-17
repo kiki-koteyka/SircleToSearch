@@ -14,7 +14,6 @@ public partial class SettingsWindow : FluentWindow
     private const string AuthorUrl = "https://github.com/kiki-koteyka";
     private bool _loading = true;
     private bool _recordingHotkey;
-    private string? _pendingUpdateAssetUrl;
 
     public event Action? LanguageChanged;
     public event Action? HotkeyRebound;
@@ -28,6 +27,7 @@ public partial class SettingsWindow : FluentWindow
             AutostartToggle.IsChecked = Autostart.IsEnabled();
             SearchEngineCombo.SelectedIndex = AppSettings.Current.Engine == SearchEngine.Yandex ? 1 : 0;
             FastSearchToggle.IsChecked = AppSettings.Current.FastSearch;
+            AutoUpdateToggle.IsChecked = AppSettings.Current.AutoUpdate;
             ApplyStrings();
             RefreshHotkeyDisplay();
             UpdateFastSearchVisibility();
@@ -52,9 +52,8 @@ public partial class SettingsWindow : FluentWindow
         AuthorButton.Content = Strings.Get("SettingsAuthor");
         BySomeoneText.Text = Strings.Get("SettingsBySomeone");
         VersionText.Text = Strings.Get("SettingsVersion", AppVersion.Current);
-        CheckUpdateButton.Content = _pendingUpdateAssetUrl is null
-            ? Strings.Get("SettingsCheckUpdate")
-            : Strings.Get("SettingsUpdateNow");
+        CheckUpdateButton.Content = Strings.Get("SettingsCheckUpdate");
+        AutoUpdateLabel.Text = Strings.Get("SettingsAutoUpdate");
     }
 
     private void RefreshHotkeyDisplay()
@@ -177,13 +176,6 @@ public partial class SettingsWindow : FluentWindow
 
     private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
     {
-        // Second click, once an update's been found: apply it instead of checking again.
-        if (_pendingUpdateAssetUrl is { } assetUrl)
-        {
-            await ApplyUpdateAsync(assetUrl);
-            return;
-        }
-
         CheckUpdateButton.IsEnabled = false;
         UpdateStatusText.Text = Strings.Get("SettingsCheckingUpdate");
 
@@ -192,9 +184,11 @@ public partial class SettingsWindow : FluentWindow
             var result = await UpdateChecker.CheckAsync();
             if (result.UpdateAvailable && result.AssetDownloadUrl is not null)
             {
-                _pendingUpdateAssetUrl = result.AssetDownloadUrl;
                 UpdateStatusText.Text = Strings.Get("SettingsUpdateAvailable", result.LatestVersion);
-                CheckUpdateButton.Content = Strings.Get("SettingsUpdateNow");
+                // Same confirm-dialog + "apply once the search overlay is idle" path as
+                // a background-detected update — no separate immediate-download button
+                // here, so there's exactly one way updates ever get installed.
+                ((App)System.Windows.Application.Current).OfferUpdate(result.LatestVersion, result.AssetDownloadUrl);
             }
             else if (result.UpdateAvailable)
             {
@@ -219,25 +213,11 @@ public partial class SettingsWindow : FluentWindow
         }
     }
 
-    private async Task ApplyUpdateAsync(string assetUrl)
+    private void AutoUpdateToggle_Changed(object sender, RoutedEventArgs e)
     {
-        CheckUpdateButton.IsEnabled = false;
-        var progress = new Progress<double>(p =>
-            UpdateStatusText.Text = Strings.Get("SettingsDownloadingUpdate", (int)(p * 100)));
-
-        try
-        {
-            UpdateStatusText.Text = Strings.Get("SettingsDownloadingUpdate", 0);
-            // On success this shuts the whole app down to hand off to the relaunch
-            // script — nothing after this line runs.
-            await SelfUpdater.DownloadAndRestartAsync(assetUrl, progress);
-        }
-        catch (Exception ex)
-        {
-            AppLog.Error("Не удалось применить обновление", ex);
-            UpdateStatusText.Text = Strings.Get("SettingsUpdateCheckFailed");
-            CheckUpdateButton.IsEnabled = true;
-        }
+        if (_loading) return;
+        AppSettings.Current.AutoUpdate = AutoUpdateToggle.IsChecked == true;
+        AppSettings.Current.Save();
     }
 
     private void ReportBugButton_Click(object sender, RoutedEventArgs e) => OpenUrl(IssuesUrl);

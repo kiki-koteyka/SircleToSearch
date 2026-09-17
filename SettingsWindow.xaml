@@ -71,7 +71,7 @@
                 </Border>
             </ui:CardControl>
 
-            <ui:CardControl Margin="0,0,0,16" Icon="{ui:SymbolIcon ArrowCounterclockwise24}">
+            <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon ArrowCounterclockwise24}">
                 <ui:CardControl.Header>
                     <StackPanel>
                         <TextBlock x:Name="VersionText" FontSize="14"/>
@@ -79,6 +79,14 @@
                     </StackPanel>
                 </ui:CardControl.Header>
                 <ui:Button x:Name="CheckUpdateButton" Appearance="Secondary" Click="CheckUpdateButton_Click"/>
+            </ui:CardControl>
+
+            <ui:CardControl Margin="0,0,0,16">
+                <ui:CardControl.Header>
+                    <TextBlock x:Name="AutoUpdateLabel" VerticalAlignment="Center" FontSize="14"/>
+                </ui:CardControl.Header>
+                <ui:ToggleSwitch x:Name="AutoUpdateToggle"
+                                 Checked="AutoUpdateToggle_Changed" Unchecked="AutoUpdateToggle_Changed"/>
             </ui:CardControl>
 
             <StackPanel Orientation="Horizontal">

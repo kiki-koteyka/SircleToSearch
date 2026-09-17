@@ -25,7 +25,7 @@
                     MouseLeftButtonDown="Header_MouseLeftButtonDown">
                 <Grid>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
-                        <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#4285F4"/>
+                        <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="#009FAA"/>
                         <TextBlock x:Name="StatusText" Margin="8,0,0,0"
                                    FontFamily="Segoe UI Semibold" FontSize="13" Foreground="#3C4043"/>
                     </StackPanel>
@@ -42,7 +42,7 @@
                  on top of it while it's visible (airspace). Collapsing it while loading is
                  what lets this M3-style spinner show instead of a blank/white flash. -->
             <Border x:Name="LoadingOverlay" Grid.Row="1" Background="White" CornerRadius="0,0,16,16">
-                <Polygon x:Name="SpinnerShape" Fill="#4285F4"
+                <Polygon x:Name="SpinnerShape" Fill="#009FAA"
                          HorizontalAlignment="Center" VerticalAlignment="Center"
                          Width="48" Height="48"/>
             </Border>

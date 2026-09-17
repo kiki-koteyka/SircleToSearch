@@ -13,6 +13,9 @@ public partial class App : System.Windows.Application
     private HotkeyManager? _hotkeyManager;
     private OverlayWindow? _activeOverlay;
     private SettingsWindow? _settingsWindow;
+    private UpdatePromptWindow? _updatePromptWindow;
+    private string? _pendingUpdateAssetUrl;
+    private string? _updateNotifiedVersion;
 
     public HotkeyManager? HotkeyManager => _hotkeyManager;
 
@@ -20,6 +23,9 @@ public partial class App : System.Windows.Application
     {
         WinForms.Application.SetHighDpiMode(WinForms.HighDpiMode.PerMonitorV2);
         base.OnStartup(e);
+
+        Wpf.Ui.Appearance.ApplicationAccentColorManager.Apply(
+            System.Windows.Media.Color.FromRgb(0x00, 0x9F, 0xAA), Wpf.Ui.Appearance.ApplicationTheme.Light);
 
         DispatcherUnhandledException += (_, args) =>
         {
@@ -85,6 +91,7 @@ public partial class App : System.Windows.Application
             Visible = true,
         };
         _trayIcon.DoubleClick += (_, _) => OpenSettings();
+        _trayIcon.BalloonTipClicked += (_, _) => ShowUpdatePrompt();
 
         RebuildTrayMenu();
     }
@@ -138,12 +145,92 @@ public partial class App : System.Windows.Application
     {
         if (_activeOverlay is not null) return;
 
+        CheckForUpdatesInBackground();
+
         Current.Dispatcher.Invoke(() =>
         {
             _activeOverlay = new OverlayWindow();
             _activeOverlay.Closed += (_, _) => _activeOverlay = null;
             _activeOverlay.Show();
         });
+    }
+
+    /// <summary>Fire-and-forget, run once per search request. Cheap and stateless on
+    /// GitHub's end, so no need to throttle the check itself — only the user-visible
+    /// notification is deduped (once per newly-seen version per run) so this doesn't
+    /// spam a balloon on every single search.</summary>
+    private async void CheckForUpdatesInBackground()
+    {
+        try
+        {
+            var result = await UpdateChecker.CheckAsync();
+            if (!result.UpdateAvailable || result.AssetDownloadUrl is null) return;
+            if (result.LatestVersion == _updateNotifiedVersion) return;
+            _updateNotifiedVersion = result.LatestVersion;
+            _pendingUpdateAssetUrl = result.AssetDownloadUrl;
+
+            if (AppSettings.Current.AutoUpdate)
+            {
+                _ = ApplyUpdateWhenIdleAsync(result.AssetDownloadUrl);
+            }
+            else
+            {
+                _trayIcon?.ShowBalloonTip(8000, "SircleToSearch",
+                    Strings.Get("UpdateBalloonText", result.LatestVersion), WinForms.ToolTipIcon.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Info($"Фоновая проверка обновлений не удалась: {ex.Message}");
+        }
+    }
+
+    /// <summary>Entry point for anywhere in the app (background check, manual "Check for
+    /// updates" in Settings) that's found a newer version and wants to offer it — always
+    /// goes through the same confirm dialog and idle-deferred apply.</summary>
+    public void OfferUpdate(string version, string assetUrl)
+    {
+        _updateNotifiedVersion = version;
+        _pendingUpdateAssetUrl = assetUrl;
+        ShowUpdatePrompt();
+    }
+
+    private void ShowUpdatePrompt()
+    {
+        if (_pendingUpdateAssetUrl is not { } assetUrl) return;
+
+        if (_updatePromptWindow is not null)
+        {
+            _updatePromptWindow.Activate();
+            return;
+        }
+
+        _updatePromptWindow = new UpdatePromptWindow(_updateNotifiedVersion ?? "");
+        _updatePromptWindow.UpdateAccepted += () => _ = ApplyUpdateWhenIdleAsync(assetUrl);
+        _updatePromptWindow.Closed += (_, _) => _updatePromptWindow = null;
+        _updatePromptWindow.Show();
+        _updatePromptWindow.Activate();
+    }
+
+    /// <summary>Waits for the search overlay to be fully closed and then a further 5
+    /// idle seconds before actually downloading and swapping the exe — never yanks the
+    /// app out from under an in-progress search.</summary>
+    private async Task ApplyUpdateWhenIdleAsync(string assetUrl)
+    {
+        while (_activeOverlay is not null)
+            await Task.Delay(500);
+
+        await Task.Delay(5000);
+        if (_activeOverlay is not null) return; // a new search started during the wait — next check will retry
+
+        try
+        {
+            await SelfUpdater.DownloadAndRestartAsync(assetUrl);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Автообновление не удалось", ex);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)

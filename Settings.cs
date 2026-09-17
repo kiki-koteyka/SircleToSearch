@@ -22,6 +22,12 @@ public sealed class AppSettings
     public uint HotkeyModifiers { get; set; } = (uint)(HotkeyManager.Modifiers.Win | HotkeyManager.Modifiers.Shift);
     public uint HotkeyVk { get; set; } = 0x51; // Q
 
+    // Off by default: a newer version just pops a tray notification + a confirm dialog
+    // (Settings > "Update automatically" or the dialog's own checkbox flips this on).
+    // Either way the actual download+swap+relaunch only ever happens once the search
+    // overlay is fully closed and idle for a few seconds — never mid-search.
+    public bool AutoUpdate { get; set; }
+
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SircleToSearch", "settings.json");
