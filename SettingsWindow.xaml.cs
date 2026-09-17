@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using Wpf.Ui.Controls;
 
 namespace SircleToSearch;
@@ -21,6 +22,8 @@ public partial class SettingsWindow : FluentWindow
     private double _scrollPendingTarget;
     private bool _scrollAnimating;
     private int _scrollGeneration;
+    private double _pendingWheelDelta;
+    private bool _wheelUpdateScheduled;
 
     public event Action? LanguageChanged;
     public event Action? HotkeyRebound;
@@ -90,6 +93,18 @@ public partial class SettingsWindow : FluentWindow
     private void SettingsScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
     {
         e.Handled = true;
+        _pendingWheelDelta += e.Delta;
+
+        if (_wheelUpdateScheduled) return;
+        _wheelUpdateScheduled = true;
+        Dispatcher.BeginInvoke(DispatcherPriority.Render, new Action(ApplyPendingWheelScroll));
+    }
+
+    private void ApplyPendingWheelScroll()
+    {
+        _wheelUpdateScheduled = false;
+        var delta = _pendingWheelDelta;
+        _pendingWheelDelta = 0;
 
         if (!_scrollAnimating)
         {
@@ -97,7 +112,7 @@ public partial class SettingsWindow : FluentWindow
             _scrollPendingTarget = _scrollBaseOffset;
         }
 
-        _scrollPendingTarget = Math.Clamp(_scrollPendingTarget - e.Delta, 0, SettingsScrollViewer.ScrollableHeight);
+        _scrollPendingTarget = Math.Clamp(_scrollPendingTarget - delta, 0, SettingsScrollViewer.ScrollableHeight);
 
         var duration = TimeSpan.FromMilliseconds(280);
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
