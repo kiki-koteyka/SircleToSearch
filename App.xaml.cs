@@ -14,6 +14,8 @@ public partial class App : System.Windows.Application
     private OverlayWindow? _activeOverlay;
     private SettingsWindow? _settingsWindow;
 
+    public HotkeyManager? HotkeyManager => _hotkeyManager;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         WinForms.Application.SetHighDpiMode(WinForms.HighDpiMode.PerMonitorV2);
@@ -51,7 +53,8 @@ public partial class App : System.Windows.Application
 
         SetupTrayIcon();
 
-        _hotkeyManager = new HotkeyManager();
+        _hotkeyManager = new HotkeyManager(
+            (HotkeyManager.Modifiers)AppSettings.Current.HotkeyModifiers, AppSettings.Current.HotkeyVk);
         _hotkeyManager.HotkeyPressed += ShowOverlay;
 
         if (!AppSettings.Current.FirstRunCompleted)
@@ -62,9 +65,23 @@ public partial class App : System.Windows.Application
 
     private void SetupTrayIcon()
     {
+        // Pulled from our own exe (baked in via ApplicationIcon in the csproj) instead
+        // of the generic system icon — same code works before and after publish since
+        // it just reads whatever icon is embedded in the running executable.
+        System.Drawing.Icon icon;
+        try
+        {
+            icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!)
+                ?? System.Drawing.SystemIcons.Application;
+        }
+        catch
+        {
+            icon = System.Drawing.SystemIcons.Application;
+        }
+
         _trayIcon = new WinForms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = icon,
             Visible = true,
         };
         _trayIcon.DoubleClick += (_, _) => OpenSettings();
@@ -76,6 +93,9 @@ public partial class App : System.Windows.Application
     {
         if (_trayIcon is null) return;
 
+        var hotkeyDisplay = HotkeyManager.Format(
+            (HotkeyManager.Modifiers)AppSettings.Current.HotkeyModifiers, AppSettings.Current.HotkeyVk);
+
         var menu = new WinForms.ContextMenuStrip();
 
         var settingsItem = new WinForms.ToolStripMenuItem(Strings.Get("MenuSettings"));
@@ -84,7 +104,7 @@ public partial class App : System.Windows.Application
 
         menu.Items.Add(new WinForms.ToolStripSeparator());
 
-        var triggerItem = new WinForms.ToolStripMenuItem(Strings.Get("MenuFindNow"));
+        var triggerItem = new WinForms.ToolStripMenuItem(Strings.Get("MenuFindNow", hotkeyDisplay));
         triggerItem.Click += (_, _) => ShowOverlay();
         menu.Items.Add(triggerItem);
 
@@ -95,7 +115,7 @@ public partial class App : System.Windows.Application
         menu.Items.Add(exitItem);
 
         _trayIcon.ContextMenuStrip = menu;
-        _trayIcon.Text = Strings.Get("TrayTooltip");
+        _trayIcon.Text = Strings.Get("TrayTooltip", hotkeyDisplay);
     }
 
     private void OpenSettings()
@@ -108,6 +128,7 @@ public partial class App : System.Windows.Application
 
         _settingsWindow = new SettingsWindow();
         _settingsWindow.LanguageChanged += RebuildTrayMenu;
+        _settingsWindow.HotkeyRebound += RebuildTrayMenu;
         _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
