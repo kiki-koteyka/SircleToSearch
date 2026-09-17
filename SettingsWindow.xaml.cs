@@ -20,6 +20,7 @@ public partial class SettingsWindow : FluentWindow
     private double _scrollBaseOffset;
     private double _scrollPendingTarget;
     private bool _scrollAnimating;
+    private int _scrollGeneration;
 
     public event Action? LanguageChanged;
     public event Action? HotkeyRebound;
@@ -111,8 +112,10 @@ public partial class SettingsWindow : FluentWindow
         };
 
         _scrollAnimating = true;
+        var generation = ++_scrollGeneration;
         contentAnimation.Completed += (_, _) =>
         {
+            if (generation != _scrollGeneration) return;
             _scrollAnimating = false;
             SettingsContentTransform.BeginAnimation(TranslateTransform.YProperty, null);
             SettingsContentTransform.Y = 0;
