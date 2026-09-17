@@ -19,6 +19,14 @@
                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                       CanContentScroll="False" PreviewMouseWheel="SettingsScrollViewer_PreviewMouseWheel">
         <StackPanel Margin="20,4,20,20">
+            <StackPanel.CacheMode>
+                <!-- Without this, every animated ScrollToVerticalOffset call during the
+                     smooth-scroll re-renders every card/icon/border in here from scratch -
+                     that's what showed up as choppy, low-fps scrolling. Caching to a
+                     bitmap means the compositor just repositions one flat image per frame
+                     instead of re-drawing the whole tree. -->
+                <BitmapCache EnableClearType="False" RenderAtScale="1" SnapsToDevicePixels="True"/>
+            </StackPanel.CacheMode>
             <TextBlock x:Name="WelcomeText" TextWrapping="Wrap" Opacity="0.7" FontSize="13" Margin="0,0,0,16"/>
 
             <ui:CardControl Margin="0,0,0,8" Icon="{ui:SymbolIcon Globe24}">
