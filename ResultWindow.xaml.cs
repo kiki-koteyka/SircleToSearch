@@ -103,6 +103,8 @@ public partial class ResultWindow : Window
 
     private void Reveal()
     {
+        Topmost = false;
+        Topmost = true;
         Left = _targetLeft;
         Top = SystemParameters.WorkArea.Bottom;
         var slideUp = new DoubleAnimation(SystemParameters.WorkArea.Bottom, _targetTop,
