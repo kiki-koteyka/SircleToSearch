@@ -10,11 +10,12 @@
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual">
+    <!-- No DropShadowEffect here: with no margin reserved around this Border for the
+         blur to render into, it got hard-clipped at the window's own rectangular
+         bounds - the visible artifact was that clipped shadow, not the fill, showing
+         as a square edge poking out past the rounded corners. -->
     <Border Background="White" CornerRadius="16,16,0,0"
             BorderBrush="#22000000" BorderThickness="1">
-        <Border.Effect>
-            <DropShadowEffect BlurRadius="24" ShadowDepth="4" Opacity="0.35" Color="Black"/>
-        </Border.Effect>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="44"/>
@@ -29,10 +30,14 @@
                         <TextBlock x:Name="StatusText" Margin="8,0,0,0"
                                    FontFamily="Segoe UI Semibold" FontSize="13" Foreground="#3C4043"/>
                     </StackPanel>
-                    <Button x:Name="CloseButton" Content="✕" Width="32" Height="32"
-                            HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0"
-                            BorderThickness="0" Background="Transparent" Foreground="#5F6368"
-                            FontSize="13" Cursor="Hand" Click="CloseButton_Click"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,4,0">
+                        <Button x:Name="SettingsButton" Content="⚙" Width="32" Height="32"
+                                BorderThickness="0" Background="Transparent" Foreground="#5F6368"
+                                FontSize="14" Cursor="Hand" Click="SettingsButton_Click"/>
+                        <Button x:Name="CloseButton" Content="✕" Width="32" Height="32"
+                                BorderThickness="0" Background="Transparent" Foreground="#5F6368"
+                                FontSize="13" Cursor="Hand" Click="CloseButton_Click"/>
+                    </StackPanel>
                 </Grid>
             </Border>
 
@@ -42,9 +47,13 @@
                  on top of it while it's visible (airspace). Collapsing it while loading is
                  what lets this M3-style spinner show instead of a blank/white flash. -->
             <Border x:Name="LoadingOverlay" Grid.Row="1" Background="White" CornerRadius="0,0,16,16">
-                <Polygon x:Name="SpinnerShape" Fill="#009FAA"
-                         HorizontalAlignment="Center" VerticalAlignment="Center"
-                         Width="48" Height="48"/>
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- Soft tinted disc behind the morphing shape, matching the look
+                         Google itself uses for this indicator (a light tint of the
+                         accent color, not a bare white background). -->
+                    <Ellipse Width="76" Height="76" Fill="#CCE9EC"/>
+                    <Polygon x:Name="SpinnerShape" Fill="#009FAA" Width="48" Height="48"/>
+                </Grid>
             </Border>
 
             <!-- Shown instead of the browser when a search fails outright, so a failure

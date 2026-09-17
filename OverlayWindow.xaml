@@ -12,7 +12,8 @@
     <Grid x:Name="RootGrid"
           MouseLeftButtonDown="RootGrid_MouseLeftButtonDown"
           MouseMove="RootGrid_MouseMove"
-          MouseLeftButtonUp="RootGrid_MouseLeftButtonUp">
+          MouseLeftButtonUp="RootGrid_MouseLeftButtonUp"
+          LostMouseCapture="RootGrid_LostMouseCapture">
         <Image x:Name="ScreenshotImage" Stretch="Fill"/>
 
         <!-- Dims everything except the selection rectangle, whose Clip carves a hole out of this. -->

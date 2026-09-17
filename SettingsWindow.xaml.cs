@@ -32,6 +32,8 @@ public partial class SettingsWindow : FluentWindow
             RefreshHotkeyDisplay();
             UpdateFastSearchVisibility();
             _loading = false;
+
+            _ = CheckForUpdatesAsync();
         };
     }
 
@@ -174,7 +176,9 @@ public partial class SettingsWindow : FluentWindow
         }
     }
 
-    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e)
+    private async void CheckUpdateButton_Click(object sender, RoutedEventArgs e) => await CheckForUpdatesAsync();
+
+    private async Task CheckForUpdatesAsync()
     {
         CheckUpdateButton.IsEnabled = false;
         UpdateStatusText.Text = Strings.Get("SettingsCheckingUpdate");

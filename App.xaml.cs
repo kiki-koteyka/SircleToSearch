@@ -125,7 +125,7 @@ public partial class App : System.Windows.Application
         _trayIcon.Text = Strings.Get("TrayTooltip", hotkeyDisplay);
     }
 
-    private void OpenSettings()
+    public void OpenSettings()
     {
         if (_settingsWindow is not null)
         {

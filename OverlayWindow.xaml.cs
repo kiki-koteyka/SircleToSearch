@@ -156,10 +156,30 @@ public partial class OverlayWindow : Window
     private void RootGrid_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (_mode == DragMode.None) return;
+        // Reset _mode BEFORE releasing capture: ReleaseMouseCapture() below fires
+        // LostMouseCapture synchronously, and that handler needs to see None here to
+        // no-op instead of finishing the drag a second time.
         var mode = _mode;
         _mode = DragMode.None;
         RootGrid.ReleaseMouseCapture();
+        FinishDrag(mode);
+    }
 
+    /// <summary>Fires if mouse capture is lost mid-drag for any reason other than our
+    /// own ReleaseMouseCapture() above (the OS/another window stealing it, a focus
+    /// change, etc.) - without this, a drag that ends this way leaves the selection
+    /// stuck as an empty translucent rectangle forever: MouseLeftButtonUp never fires,
+    /// so the search never starts and _mode never resets.</summary>
+    private void RootGrid_LostMouseCapture(object sender, MouseEventArgs e)
+    {
+        if (_mode == DragMode.None) return;
+        var mode = _mode;
+        _mode = DragMode.None;
+        FinishDrag(mode);
+    }
+
+    private void FinishDrag(DragMode mode)
+    {
         if (_selection.Width < MinSelectionSize || _selection.Height < MinSelectionSize)
         {
             if (mode == DragMode.Creating)

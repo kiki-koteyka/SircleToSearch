@@ -579,6 +579,9 @@ public partial class ResultWindow : Window
         if (e.ButtonState == MouseButtonState.Pressed) DragMove();
     }
 
+    private void SettingsButton_Click(object sender, RoutedEventArgs e) =>
+        ((App)System.Windows.Application.Current).OpenSettings();
+
     private void CloseButton_Click(object sender, RoutedEventArgs e) => CloseOnce();
 
     private void CloseOnce()
