@@ -2,7 +2,6 @@ using System.Collections.Generic;
 
 namespace SircleToSearch;
 
-/// <summary>Tiny lookup-table localizer - English default, Russian fallback. No resx/satellite assemblies needed for two languages.</summary>
 public static class Strings
 {
     private static readonly Dictionary<string, (string En, string Ru)> Table = new()

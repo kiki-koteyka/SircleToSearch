@@ -6,11 +6,6 @@ using System.Threading.Tasks;
 
 namespace SircleToSearch;
 
-/// <summary>
-/// Real in-place self-update: downloads the new exe, then hands off to a small detached
-/// script that waits for this process to exit, swaps the file in, and relaunches - a
-/// running exe can't overwrite its own file, so that handoff has to happen outside it.
-/// </summary>
 public static class SelfUpdater
 {
     public static async Task DownloadAndRestartAsync(string downloadUrl, IProgress<double>? progress = null)
@@ -49,9 +44,6 @@ public static class SelfUpdater
 
         var pid = Environment.ProcessId;
         var scriptPath = Path.Combine(updateDir, "apply-update.ps1");
-        // Waits for this process to actually exit (the file lock on currentExePath only
-        // releases then), retries the copy a few times in case Windows is still flushing
-        // the handle, then relaunches from the original path and cleans up after itself.
         var script = $$"""
             $ErrorActionPreference = 'SilentlyContinue'
             try { Wait-Process -Id {{pid}} -Timeout 30 } catch {}

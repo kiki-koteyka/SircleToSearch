@@ -2,7 +2,6 @@ using System;
 
 namespace SircleToSearch;
 
-/// <summary>Spring physics matching Android's SpringForce - semi-implicit Euler with sub-stepping.</summary>
 public sealed class M3Spring
 {
     private readonly double _k;
@@ -15,7 +14,7 @@ public sealed class M3Spring
     public M3Spring(double stiffness, double dampingRatio)
     {
         _k = stiffness;
-        _c = dampingRatio * 2 * Math.Sqrt(stiffness); // critical damping, mass = 1
+        _c = dampingRatio * 2 * Math.Sqrt(stiffness);
     }
 
     public void Step(double dt)

@@ -25,9 +25,6 @@ public static class Autostart
 
             if (enabled)
             {
-                // Environment.ProcessPath resolves to the actual launched .exe (the
-                // self-contained single-file build), not a temp self-extraction path -
-                // that's what needs to survive into the Run key.
                 var exePath = Environment.ProcessPath
                     ?? Path.Combine(AppContext.BaseDirectory, "SircleToSearch.exe");
                 if (!File.Exists(exePath)) return false;

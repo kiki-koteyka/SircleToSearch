@@ -86,7 +86,7 @@ public partial class SettingsWindow : FluentWindow
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
         if (key is Key.LWin or Key.RWin or Key.LeftCtrl or Key.RightCtrl
             or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift)
-            return; // still just a modifier on its own - keep waiting for a real key
+            return;
 
         if (key == Key.Escape)
         {
@@ -103,7 +103,7 @@ public partial class SettingsWindow : FluentWindow
         if (modifiers == HotkeyManager.Modifiers.None)
         {
             HotkeyDisplayText.Text = Strings.Get("SettingsHotkeyNeedsModifier");
-            return; // keep recording - a bare letter key isn't a usable global hotkey
+            return;
         }
 
         var vk = (uint)KeyInterop.VirtualKeyFromKey(key);
@@ -111,7 +111,7 @@ public partial class SettingsWindow : FluentWindow
         if (app.HotkeyManager is null || !app.HotkeyManager.TryRebind(modifiers, vk))
         {
             HotkeyDisplayText.Text = Strings.Get("SettingsHotkeyConflict");
-            return; // keep recording so they can try a different combo
+            return;
         }
 
         AppSettings.Current.HotkeyModifiers = (uint)modifiers;
@@ -143,9 +143,6 @@ public partial class SettingsWindow : FluentWindow
         UpdateFastSearchVisibility();
     }
 
-    /// <summary>The fast-vs-reliable tradeoff only exists for Google's captcha-avoidance
-    /// dance - Yandex's upload flow doesn't have an equivalent, so hide the toggle
-    /// instead of leaving a control on screen that does nothing.</summary>
     private void UpdateFastSearchVisibility()
     {
         FastSearchCard.Visibility = AppSettings.Current.Engine == SearchEngine.Google
@@ -189,15 +186,10 @@ public partial class SettingsWindow : FluentWindow
             if (result.UpdateAvailable && result.AssetDownloadUrl is not null)
             {
                 UpdateStatusText.Text = Strings.Get("SettingsUpdateAvailable", result.LatestVersion);
-                // Same confirm-dialog + "apply once the search overlay is idle" path as
-                // a background-detected update - no separate immediate-download button
-                // here, so there's exactly one way updates ever get installed.
                 ((App)System.Windows.Application.Current).OfferUpdate(result.LatestVersion, result.AssetDownloadUrl);
             }
             else if (result.UpdateAvailable)
             {
-                // Newer tag exists but has no matching exe asset (e.g. a draft/partial
-                // release) - nothing to self-update from, point at the release page instead.
                 UpdateStatusText.Text = Strings.Get("SettingsUpdateAvailable", result.LatestVersion);
                 OpenUrl(result.ReleaseUrl);
             }

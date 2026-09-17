@@ -13,19 +13,11 @@ public sealed class AppSettings
 
     public SearchEngine Engine { get; set; } = SearchEngine.Google;
 
-    // Default off: the direct-HttpClient upload is faster but sometimes gets Google to
-    // show a captcha, because the request never actually visits google.com in a real
-    // browser session first. The WebView2 fetch()-based path is slower but has not
-    // triggered that.
     public bool FastSearch { get; set; }
 
     public uint HotkeyModifiers { get; set; } = (uint)(HotkeyManager.Modifiers.Win | HotkeyManager.Modifiers.Shift);
-    public uint HotkeyVk { get; set; } = 0x51; // Q
+    public uint HotkeyVk { get; set; } = 0x51;
 
-    // Off by default: a newer version just pops a tray notification + a confirm dialog
-    // (Settings > "Update automatically" or the dialog's own checkbox flips this on).
-    // Either way the actual download+swap+relaunch only ever happens once the search
-    // overlay is fully closed and idle for a few seconds - never mid-search.
     public bool AutoUpdate { get; set; }
 
     private static readonly string SettingsPath = Path.Combine(

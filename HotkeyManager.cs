@@ -38,15 +38,12 @@ public sealed class HotkeyManager : IDisposable
 
     public HotkeyManager(Modifiers modifiers, uint vk)
     {
-        // Plain invisible top-level window (0x0 size, no WS_VISIBLE). HWND_MESSAGE
-        // windows are unreliable for WM_HOTKEY delivery on some setups - this is the
-        // pattern every WPF global-hotkey library actually ships.
         var parameters = new HwndSourceParameters("SircleToSearchHotkeySink")
         {
             Width = 0,
             Height = 0,
             WindowStyle = 0,
-            ExtendedWindowStyle = 0x80, // WS_EX_TOOLWINDOW - keeps it out of alt-tab/taskbar
+            ExtendedWindowStyle = 0x80,
         };
         _source = new HwndSource(parameters);
         _source.AddHook(WndProc);
@@ -58,9 +55,6 @@ public sealed class HotkeyManager : IDisposable
         }
     }
 
-    /// <summary>Switches to a new key combo, e.g. after the user rebinds it in Settings.
-    /// Returns false (and leaves the previous binding registered, since nothing new took
-    /// its place) if the new combo is already claimed by another program.</summary>
     public bool TryRebind(Modifiers modifiers, uint vk)
     {
         var previousModifiers = CurrentModifiers;

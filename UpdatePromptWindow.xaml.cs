@@ -4,13 +4,6 @@ using Wpf.Ui.Controls;
 
 namespace SircleToSearch;
 
-/// <summary>
-/// Asks whether to install a newer version - shown when the user clicks the tray
-/// notification for an update found during a background check (never pops up on its
-/// own). "Update" doesn't download anything itself: it just tells the caller to go
-/// ahead via <see cref="UpdateAccepted"/>, which App defers until the search overlay is
-/// closed and idle.
-/// </summary>
 public partial class UpdatePromptWindow : FluentWindow
 {
     private bool _loading = true;

@@ -10,10 +10,6 @@
         ShowInTaskbar="False"
         Topmost="True"
         WindowStartupLocation="Manual">
-    <!-- No DropShadowEffect here: with no margin reserved around this Border for the
-         blur to render into, it got hard-clipped at the window's own rectangular
-         bounds - the visible artifact was that clipped shadow, not the fill, showing
-         as a square edge poking out past the rounded corners. -->
     <Border Background="White" CornerRadius="16,16,0,0"
             BorderBrush="#22000000" BorderThickness="1">
         <Grid>
@@ -43,22 +39,15 @@
 
             <wv2:WebView2 x:Name="Browser" Grid.Row="1" Visibility="Collapsed"/>
 
-            <!-- WebView2 is a windowed control (its own HWND) - a WPF overlay can't draw
-                 on top of it while it's visible (airspace). Collapsing it while loading is
-                 what lets this M3-style spinner show instead of a blank/white flash. -->
             <Border x:Name="LoadingOverlay" Grid.Row="1" Background="White" CornerRadius="0,0,16,16">
                 <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <!-- Soft tinted disc behind the morphing shape, matching the look
-                         Google itself uses for this indicator (a light tint of the
-                         accent color, not a bare white background). -->
-                    <Ellipse Width="76" Height="76" Fill="#CCE9EC"/>
-                    <Polygon x:Name="SpinnerShape" Fill="#009FAA" Width="48" Height="48"/>
+                    <Ellipse Width="76" Height="76" Fill="#CCE9EC"
+                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    <Polygon x:Name="SpinnerShape" Fill="#009FAA" Width="48" Height="48"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="None"/>
                 </Grid>
             </Border>
 
-            <!-- Shown instead of the browser when a search fails outright, so a failure
-                 (e.g. Google showing a captcha) reads as "something went wrong, retry"
-                 instead of the window just silently sitting on stale/no content. -->
             <Border x:Name="ErrorOverlay" Grid.Row="1" Background="White" CornerRadius="0,0,16,16"
                     Visibility="Collapsed">
                 <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="320">

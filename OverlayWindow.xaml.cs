@@ -34,10 +34,6 @@ public partial class OverlayWindow : Window
     {
         InitializeComponent();
 
-        // Position and hide BEFORE the first Show() paints a frame - doing this in
-        // Loaded instead left a visible blink: WPF composites one frame at the
-        // default (small, top-left) window rect first, then jumps to fullscreen and
-        // fades in, which reads as a flash on hotkey press.
         Left = SystemParameters.VirtualScreenLeft;
         Top = SystemParameters.VirtualScreenTop;
         Width = SystemParameters.VirtualScreenWidth;
@@ -47,18 +43,17 @@ public partial class OverlayWindow : Window
         Loaded += OverlayWindow_Loaded;
         KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Escape)
-            {
-                // First Esc just dismisses the result (if one's showing) so the user can
-                // keep adjusting the selection; a second Esc (nothing left to dismiss)
-                // closes the overlay itself, same as before.
-                if (_resultWindow?.IsResultVisible == true)
-                    _resultWindow.HideResult();
-                else
-                    Close();
-            }
+            if (e.Key == Key.Escape) HandleEscape();
             else if (e.Key == Key.Enter && !_selection.IsEmpty) StartSearch(_selection);
         };
+    }
+
+    private void HandleEscape()
+    {
+        if (_resultWindow?.IsResultVisible == true)
+            _resultWindow.HideResult();
+        else
+            Close();
     }
 
     private void OverlayWindow_Loaded(object? sender, RoutedEventArgs e)
@@ -76,12 +71,9 @@ public partial class OverlayWindow : Window
         Opacity = 0;
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
 
-        // Create and pre-warm the result window right away, before the user has even
-        // finished dragging a selection - WebView2 startup + the google.com navigation
-        // cost (~600-800ms combined) then happens in the background during that time
-        // instead of sitting on the critical path after they release the mouse.
         _resultWindow = new ResultWindow();
         _resultWindow.Closed += (_, _) => _resultWindow = null;
+        _resultWindow.EscapeRequested += HandleEscape;
         _resultWindow.Show();
         _ = _resultWindow.PreWarmAsync();
 
@@ -134,9 +126,6 @@ public partial class OverlayWindow : Window
                 var candidate = new Rect(
                     Math.Min(_dragAnchor.X, pos.X), Math.Min(_dragAnchor.Y, pos.Y),
                     Math.Abs(pos.X - _dragAnchor.X), Math.Abs(pos.Y - _dragAnchor.Y));
-                // While actively creating, let it track the cursor even below the
-                // minimum size (checked on release); while resizing an existing
-                // selection, don't let it collapse to nothing mid-drag.
                 if (_mode == DragMode.Creating || (candidate.Width >= MinSelectionSize && candidate.Height >= MinSelectionSize))
                     _selection = candidate;
                 break;
@@ -156,20 +145,12 @@ public partial class OverlayWindow : Window
     private void RootGrid_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
         if (_mode == DragMode.None) return;
-        // Reset _mode BEFORE releasing capture: ReleaseMouseCapture() below fires
-        // LostMouseCapture synchronously, and that handler needs to see None here to
-        // no-op instead of finishing the drag a second time.
         var mode = _mode;
         _mode = DragMode.None;
         RootGrid.ReleaseMouseCapture();
         FinishDrag(mode);
     }
 
-    /// <summary>Fires if mouse capture is lost mid-drag for any reason other than our
-    /// own ReleaseMouseCapture() above (the OS/another window stealing it, a focus
-    /// change, etc.) - without this, a drag that ends this way leaves the selection
-    /// stuck as an empty translucent rectangle forever: MouseLeftButtonUp never fires,
-    /// so the search never starts and _mode never resets.</summary>
     private void RootGrid_LostMouseCapture(object sender, MouseEventArgs e)
     {
         if (_mode == DragMode.None) return;
@@ -184,8 +165,6 @@ public partial class OverlayWindow : Window
         {
             if (mode == DragMode.Creating)
             {
-                // Accidental click/tiny drag with no prior selection - reset and
-                // keep waiting for a real gesture.
                 _selection = Rect.Empty;
                 UpdateSelectionVisuals();
             }
@@ -195,7 +174,6 @@ public partial class OverlayWindow : Window
         StartSearch(_selection);
     }
 
-    /// <summary>Returns the opposite corner (resize anchor) if <paramref name="pos"/> is near a selection handle.</summary>
     private Point? HitCorner(Point pos)
     {
         if (_selection.IsEmpty) return null;
@@ -284,14 +262,11 @@ public partial class OverlayWindow : Window
             cropped.Dispose();
             AppLog.Info($"[perf] Crop+encode: {sw.ElapsedMilliseconds}ms");
 
-            // Keep the overlay open - the selection stays on screen so the user can
-            // drag/resize it and re-search, instead of the whole thing vanishing
-            // after one shot. Reuse the same (already pre-warmed) result window across
-            // re-searches; only recreate it if it somehow got closed independently.
             if (_resultWindow is null)
             {
                 _resultWindow = new ResultWindow();
                 _resultWindow.Closed += (_, _) => _resultWindow = null;
+                _resultWindow.EscapeRequested += HandleEscape;
                 _resultWindow.Show();
             }
             _resultWindow.ShowSearch(jpegBytes);
@@ -306,9 +281,6 @@ public partial class OverlayWindow : Window
     {
         var screenshot = _screenshot!;
 
-        // No padding: with a precise drag-resizable rectangle (unlike the old freehand
-        // lasso) the user's box IS the intended crop - padding it out was sending
-        // noticeably more of the screen than what was actually selected.
         var scaleX = screenshot.Width / ActualWidth;
         var scaleY = screenshot.Height / ActualHeight;
 
@@ -324,8 +296,6 @@ public partial class OverlayWindow : Window
             pixelRect = new Rectangle(0, 0, screenshot.Width, screenshot.Height);
         }
 
-        // Bitmap.Clone(rect) is known to hand back corrupt/garbage pixel data for
-        // some rectangles - drawing into a fresh bitmap is the reliable way to crop.
         var result = new Bitmap(pixelRect.Width, pixelRect.Height, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
         using (var g = Graphics.FromImage(result))
         {

@@ -16,12 +16,8 @@
           LostMouseCapture="RootGrid_LostMouseCapture">
         <Image x:Name="ScreenshotImage" Stretch="Fill"/>
 
-        <!-- Dims everything except the selection rectangle, whose Clip carves a hole out of this. -->
         <Path x:Name="DimOverlay" Fill="Black" Opacity="0.55"/>
 
-        <!-- A real Canvas: Grid ignores Canvas.Left/Top on its own children, so the
-             selection border and its corner handles both live here to share one
-             coordinate space that actually honors those attached properties. -->
         <Canvas x:Name="HandleLayer" IsHitTestVisible="False">
             <Rectangle x:Name="SelectionBorder" Visibility="Collapsed"
                        Stroke="White" StrokeThickness="2.5" Fill="Transparent"/>

@@ -1,10 +1,5 @@
 namespace SircleToSearch;
 
-/// <summary>
-/// Drives the Material 3 loading-indicator morph/rotation - ported from
-/// LoadingIndicatorAnimatorDelegate.java's actual constants: 650ms per shape,
-/// spring k=200/ζ=0.6, dual rotation (50° constant + 90° spring-driven per cycle).
-/// </summary>
 public sealed class M3Animator
 {
     public const double DurationPerShapeMs = 650;
@@ -29,7 +24,6 @@ public sealed class M3Animator
         _spring.Target = 1;
     }
 
-    /// <summary>Advance the animation. <paramref name="tsSeconds"/> is a monotonic clock in seconds.</summary>
     public void Update(double tsSeconds)
     {
         if (_lastTs < 0) _lastTs = tsSeconds;

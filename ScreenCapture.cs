@@ -12,8 +12,6 @@ public static class ScreenCapture
     public static Result CaptureVirtualScreen()
     {
         var bounds = SystemInformation.VirtualScreen;
-        // 24bpp, no alpha: the screen has none, and an alpha channel is exactly what
-        // trips up GDI+'s Bitmap.Clone()/JPEG encoder into producing corrupt output.
         var bitmap = new Bitmap(bounds.Width, bounds.Height, PixelFormat.Format24bppRgb);
         using (var g = Graphics.FromImage(bitmap))
         {

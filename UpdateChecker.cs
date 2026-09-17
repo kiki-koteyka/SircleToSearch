@@ -12,7 +12,6 @@ public static class UpdateChecker
 
     public sealed record Result(bool UpdateAvailable, string LatestVersion, string ReleaseUrl, string? AssetDownloadUrl);
 
-    /// <summary>Manual check only - never called automatically. GitHub API requires a User-Agent.</summary>
     public static async Task<Result> CheckAsync()
     {
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
@@ -50,7 +49,6 @@ public static class UpdateChecker
         {
             return latestV > currentV;
         }
-        // Fall back to a plain inequality check if either string isn't a parseable version.
         return !string.Equals(latest, current, StringComparison.OrdinalIgnoreCase);
     }
 
