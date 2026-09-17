@@ -28,6 +28,7 @@ public partial class SettingsWindow : FluentWindow
     public SettingsWindow()
     {
         InitializeComponent();
+        Closed += (_, _) => CompositionTarget.Rendering -= OnScrollMomentumFrame;
         Loaded += (_, _) =>
         {
             LanguageCombo.SelectedIndex = AppSettings.Current.Language == "ru" ? 1 : 0;

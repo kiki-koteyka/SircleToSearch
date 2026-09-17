@@ -234,7 +234,7 @@ public partial class App : System.Windows.Application
     {
         _hotkeyManager?.Dispose();
         _trayIcon?.Dispose();
-        _singleInstanceMutex?.ReleaseMutex();
+        try { _singleInstanceMutex?.ReleaseMutex(); } catch (ApplicationException) { }
         base.OnExit(e);
     }
 }
