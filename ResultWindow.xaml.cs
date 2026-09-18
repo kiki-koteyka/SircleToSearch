@@ -4,10 +4,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Microsoft.Web.WebView2.Core;
@@ -16,6 +18,12 @@ namespace SircleToSearch;
 
 public partial class ResultWindow : Window
 {
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int attrValue, int attrSize);
+
+    private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+    private const int DWMWCP_DONOTROUND = 1;
+
     private byte[]? _jpegBytes;
     private bool _closing;
     private bool _busy;
@@ -54,6 +62,10 @@ public partial class ResultWindow : Window
     private void ResultWindow_Loaded(object? sender, RoutedEventArgs e)
     {
         _loader = new MorphingLoader(SpinnerShape, radius: 24);
+
+        var hwnd = new WindowInteropHelper(this).Handle;
+        var cornerPreference = DWMWCP_DONOTROUND;
+        DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPreference, sizeof(int));
     }
 
     public async Task PreWarmAsync()
