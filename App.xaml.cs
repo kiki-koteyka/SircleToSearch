@@ -16,6 +16,7 @@ public partial class App : System.Windows.Application
     private UpdatePromptWindow? _updatePromptWindow;
     private string? _pendingUpdateAssetUrl;
     private string? _updateNotifiedVersion;
+    private bool _updateApplying;
 
     public HotkeyManager? HotkeyManager => _hotkeyManager;
 
@@ -230,19 +231,26 @@ public partial class App : System.Windows.Application
 
     private async Task ApplyUpdateWhenIdleAsync(string assetUrl, bool urgent = false)
     {
-        while (_activeOverlay is not null)
-            await Task.Delay(500);
-
-        await Task.Delay(5000);
-        if (_activeOverlay is not null) return;
+        if (_updateApplying) return;
+        _updateApplying = true;
 
         try
         {
+            while (_activeOverlay is not null)
+                await Task.Delay(500);
+
+            await Task.Delay(5000);
+            if (_activeOverlay is not null) return;
+
             await SelfUpdater.DownloadAndRestartAsync(assetUrl, urgent: urgent);
         }
         catch (Exception ex)
         {
             AppLog.Error("Автообновление не удалось", ex);
+        }
+        finally
+        {
+            _updateApplying = false;
         }
     }
 
