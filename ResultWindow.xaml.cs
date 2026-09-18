@@ -81,6 +81,11 @@ public partial class ResultWindow : Window
             _revealed = true;
             Reveal();
         }
+        else
+        {
+            Topmost = false;
+            Topmost = true;
+        }
 
         if (_busy)
         {

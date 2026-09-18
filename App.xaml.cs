@@ -58,6 +58,7 @@ public partial class App : System.Windows.Application
         }
 
         SetupTrayIcon();
+        CheckUrgentUpdateFlag();
 
         _hotkeyManager = new HotkeyManager(
             (HotkeyManager.Modifiers)AppSettings.Current.HotkeyModifiers, AppSettings.Current.HotkeyVk);
@@ -66,6 +67,21 @@ public partial class App : System.Windows.Application
         if (!AppSettings.Current.FirstRunCompleted)
         {
             OpenSettings();
+        }
+    }
+
+    private void CheckUrgentUpdateFlag()
+    {
+        try
+        {
+            if (!System.IO.File.Exists(SelfUpdater.UrgentUpdateFlagPath)) return;
+            System.IO.File.Delete(SelfUpdater.UrgentUpdateFlagPath);
+            _trayIcon?.ShowBalloonTip(8000, "SircleToSearch",
+                Strings.Get("UrgentUpdateInstalled"), WinForms.ToolTipIcon.Info);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Info($"Проверка флага экстренного обновления не удалась: {ex.Message}");
         }
     }
 
@@ -164,9 +180,9 @@ public partial class App : System.Windows.Application
             _updateNotifiedVersion = result.LatestVersion;
             _pendingUpdateAssetUrl = result.AssetDownloadUrl;
 
-            if (AppSettings.Current.AutoUpdate)
+            if (result.IsUrgent || AppSettings.Current.AutoUpdate)
             {
-                _ = ApplyUpdateWhenIdleAsync(result.AssetDownloadUrl);
+                _ = ApplyUpdateWhenIdleAsync(result.AssetDownloadUrl, result.IsUrgent);
             }
             else
             {
@@ -212,7 +228,7 @@ public partial class App : System.Windows.Application
         _updatePromptWindow.Activate();
     }
 
-    private async Task ApplyUpdateWhenIdleAsync(string assetUrl)
+    private async Task ApplyUpdateWhenIdleAsync(string assetUrl, bool urgent = false)
     {
         while (_activeOverlay is not null)
             await Task.Delay(500);
@@ -222,7 +238,7 @@ public partial class App : System.Windows.Application
 
         try
         {
-            await SelfUpdater.DownloadAndRestartAsync(assetUrl);
+            await SelfUpdater.DownloadAndRestartAsync(assetUrl, urgent: urgent);
         }
         catch (Exception ex)
         {

@@ -10,7 +10,7 @@ public static class UpdateChecker
     private const string LatestReleaseApiUrl =
         "https://api.github.com/repos/kiki-koteyka/SircleToSearch/releases/latest";
 
-    public sealed record Result(bool UpdateAvailable, string LatestVersion, string ReleaseUrl, string? AssetDownloadUrl);
+    public sealed record Result(bool UpdateAvailable, string LatestVersion, string ReleaseUrl, string? AssetDownloadUrl, bool IsUrgent);
 
     public static async Task<Result> CheckAsync()
     {
@@ -26,6 +26,9 @@ public static class UpdateChecker
             : "";
         var latestVersion = tag.TrimStart('v', 'V');
 
+        var body = doc.RootElement.TryGetProperty("body", out var bodyProp) ? bodyProp.GetString() ?? "" : "";
+        var isUrgent = body.TrimStart().StartsWith("URGENT", StringComparison.OrdinalIgnoreCase);
+
         string? assetUrl = null;
         if (doc.RootElement.TryGetProperty("assets", out var assets))
         {
@@ -39,7 +42,7 @@ public static class UpdateChecker
             }
         }
 
-        return new Result(IsNewer(latestVersion, AppVersion.Current), latestVersion, url, assetUrl);
+        return new Result(IsNewer(latestVersion, AppVersion.Current), latestVersion, url, assetUrl, isUrgent);
     }
 
     private static bool IsNewer(string latest, string current)

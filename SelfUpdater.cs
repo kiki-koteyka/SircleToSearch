@@ -8,7 +8,11 @@ namespace SircleToSearch;
 
 public static class SelfUpdater
 {
-    public static async Task DownloadAndRestartAsync(string downloadUrl, IProgress<double>? progress = null)
+    public static string UrgentUpdateFlagPath => Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "SircleToSearch", "update", "urgent-update-applied.flag");
+
+    public static async Task DownloadAndRestartAsync(string downloadUrl, IProgress<double>? progress = null, bool urgent = false)
     {
         var currentExePath = Environment.ProcessPath;
         if (string.IsNullOrEmpty(currentExePath))
@@ -60,6 +64,9 @@ public static class SelfUpdater
             Remove-Item -Path '{{scriptPath}}' -Force
             """;
         await File.WriteAllTextAsync(scriptPath, script);
+
+        if (urgent)
+            await File.WriteAllTextAsync(UrgentUpdateFlagPath, "");
 
         Process.Start(new ProcessStartInfo
         {

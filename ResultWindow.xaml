@@ -26,8 +26,8 @@
                         <TextBlock x:Name="StatusText" Margin="8,0,0,0"
                                    FontFamily="Segoe UI Semibold" FontSize="13" Foreground="#3C4043"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,4,0">
-                        <Button x:Name="SettingsButton" Content="⚙" Width="32" Height="32"
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,8,0">
+                        <Button x:Name="SettingsButton" Content="⚙" Width="32" Height="32" Margin="0,0,4,0"
                                 BorderThickness="0" Background="Transparent" Foreground="#5F6368"
                                 FontSize="14" Cursor="Hand" Click="SettingsButton_Click"/>
                         <Button x:Name="CloseButton" Content="✕" Width="32" Height="32"

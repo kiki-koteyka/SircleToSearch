@@ -51,6 +51,7 @@ public static class Strings
         ["SettingsUpdateCheckFailed"] = ("Couldn't check for updates", "Не удалось проверить обновления"),
         ["SettingsAutoUpdate"] = ("Update automatically", "Обновлять автоматически"),
         ["UpdateBalloonText"] = ("Version {0} is available - click to update", "Доступна версия {0} - нажми, чтобы обновить"),
+        ["UrgentUpdateInstalled"] = ("Update with critical fixes successfully installed", "Обновление с критическими исправлениями успешно установлено"),
         ["UpdatePromptQuestion"] = ("Update to version {0}?", "Обновить до версии {0}?"),
         ["UpdatePromptHint"] = ("It'll install right after you finish and close the current search (plus a few seconds).",
                                  "Установится сразу после того, как ты закроешь текущий поиск (плюс пара секунд)."),
