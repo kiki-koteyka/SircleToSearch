@@ -25,8 +25,11 @@ public partial class App : System.Windows.Application
         WinForms.Application.SetHighDpiMode(WinForms.HighDpiMode.PerMonitorV2);
         base.OnStartup(e);
 
+        if (Environment.TickCount64 < 30_000)
+            Thread.Sleep(3000);
+
         Wpf.Ui.Appearance.ApplicationAccentColorManager.Apply(
-            System.Windows.Media.Color.FromRgb(0x00, 0x9F, 0xAA), Wpf.Ui.Appearance.ApplicationTheme.Light);
+            AccentColor.Parse(AppSettings.Current.AccentColor), Wpf.Ui.Appearance.ApplicationTheme.Light);
 
         DispatcherUnhandledException += (_, args) =>
         {

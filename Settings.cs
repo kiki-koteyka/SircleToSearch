@@ -20,6 +20,18 @@ public sealed class AppSettings
 
     public bool AutoUpdate { get; set; }
 
+    public double SelectionHug { get; set; } = 0;
+    public double SelectionCornerRadius { get; set; } = 10;
+    public double SelectionArmLength { get; set; } = 18;
+    public double SelectionThickness { get; set; } = 3;
+    public double SelectionGlowGap { get; set; } = 5;
+    public double SelectionGlowThickness { get; set; } = 10;
+    public double SelectionGlowBlur { get; set; } = 18;
+    public double SelectionGlowOpacity { get; set; } = 40;
+    public double SelectionRadius { get; set; } = 12;
+
+    public string AccentColor { get; set; } = "#009FAA";
+
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "SircleToSearch", "settings.json");

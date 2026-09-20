@@ -12,6 +12,9 @@
         WindowStartupLocation="Manual">
     <Border Background="White" CornerRadius="16,16,0,0"
             BorderBrush="#22000000" BorderThickness="1">
+        <Border.RenderTransform>
+            <TranslateTransform x:Name="SlideTransform"/>
+        </Border.RenderTransform>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="44"/>
@@ -43,7 +46,7 @@
 
             <Border x:Name="LoadingOverlay" Grid.Row="1" Background="White" CornerRadius="0,0,16,16">
                 <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Ellipse Width="76" Height="76" Fill="#CCE9EC"
+                    <Ellipse x:Name="SpinnerBackdrop" Width="76" Height="76" Fill="#CCE9EC"
                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     <Polygon x:Name="SpinnerShape" Fill="#009FAA" Width="48" Height="48"
                              HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="None"/>

@@ -33,6 +33,7 @@ public partial class OverlayWindow : Window
     public OverlayWindow()
     {
         InitializeComponent();
+        DebugInspector.Attach(this, ignoreNames: ["RootGrid", "ScreenshotImage", "DimOverlay", "AdornerDecorator"]);
 
         Left = SystemParameters.VirtualScreenLeft;
         Top = SystemParameters.VirtualScreenTop;
@@ -67,6 +68,7 @@ public partial class OverlayWindow : Window
 
         Activate();
         Focus();
+        NativeMethods.ForceRepaint(this);
 
         Opacity = 0;
         BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(150)));
@@ -205,51 +207,22 @@ public partial class OverlayWindow : Window
             return;
         }
 
+        var config = SelectionVisualConfig.FromSettings(AppSettings.Current);
         SelectionBorder.Visibility = Visibility.Visible;
-        Canvas.SetLeft(SelectionBorder, _selection.X);
-        Canvas.SetTop(SelectionBorder, _selection.Y);
-        SelectionBorder.Width = _selection.Width;
-        SelectionBorder.Height = _selection.Height;
-
-        DrawCornerHandles(_selection);
-    }
-
-    private void DrawCornerHandles(Rect rect)
-    {
-        Handles.Children.Clear();
-        var corners = new[]
-        {
-            new Point(rect.Left, rect.Top), new Point(rect.Right, rect.Top),
-            new Point(rect.Left, rect.Bottom), new Point(rect.Right, rect.Bottom),
-        };
-
-        foreach (var corner in corners)
-        {
-            var handle = new System.Windows.Shapes.Rectangle
-            {
-                Width = HandleSize,
-                Height = HandleSize,
-                Fill = System.Windows.Media.Brushes.White,
-                RadiusX = 3,
-                RadiusY = 3,
-            };
-            Canvas.SetLeft(handle, corner.X - HandleSize / 2);
-            Canvas.SetTop(handle, corner.Y - HandleSize / 2);
-            Handles.Children.Add(handle);
-        }
+        SelectionRenderer.ApplyGlow(SelectionBorder, _selection, config);
+        SelectionRenderer.DrawBrackets(Handles, _selection, config);
     }
 
     private void UpdateDimOverlay(Rect selection)
     {
-        var full = new RectangleGeometry(new Rect(0, 0, Math.Max(ActualWidth, 1), Math.Max(ActualHeight, 1)));
+        var bounds = new Rect(0, 0, Math.Max(ActualWidth, 1), Math.Max(ActualHeight, 1));
         if (selection.IsEmpty || selection.Width <= 0 || selection.Height <= 0)
         {
-            DimOverlay.Data = full;
+            DimOverlay.Data = new RectangleGeometry(bounds);
             return;
         }
 
-        var hole = new RectangleGeometry(selection);
-        DimOverlay.Data = new CombinedGeometry(GeometryCombineMode.Exclude, full, hole);
+        DimOverlay.Data = SelectionRenderer.BuildDimHole(bounds, selection, AppSettings.Current.SelectionRadius);
     }
 
     private void StartSearch(Rect selection)
@@ -339,4 +312,23 @@ internal static class NativeMethods
 {
     [System.Runtime.InteropServices.DllImport("gdi32.dll")]
     public static extern bool DeleteObject(IntPtr hObject);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter,
+        int x, int y, int cx, int cy, uint flags);
+
+    private const uint SWP_NOMOVE = 0x0002;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOACTIVATE = 0x0010;
+    private const uint SWP_FRAMECHANGED = 0x0020;
+
+    public static void ForceRepaint(Window window)
+    {
+        var hwnd = new WindowInteropHelper(window).Handle;
+        if (hwnd == IntPtr.Zero) return;
+
+        SetWindowPos(hwnd, IntPtr.Zero, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    }
 }

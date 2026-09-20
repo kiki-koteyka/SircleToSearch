@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Resource Include="Resources\gear.png" />
+    <Resource Include="Resources\cat-preview.jpg" />
   </ItemGroup>
 
 </Project>

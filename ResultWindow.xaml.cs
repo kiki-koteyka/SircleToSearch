@@ -13,6 +13,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using Microsoft.Web.WebView2.Core;
+using Color = System.Windows.Media.Color;
 
 namespace SircleToSearch;
 
@@ -39,6 +40,7 @@ public partial class ResultWindow : Window
     public ResultWindow()
     {
         InitializeComponent();
+        DebugInspector.Attach(this, ignoreNames: ["Browser"]);
 
         Width = 460;
         var screenHeight = SystemParameters.WorkArea.Height;
@@ -48,6 +50,7 @@ public partial class ResultWindow : Window
 
         Left = -5000;
         Top = _targetTop;
+        SlideTransform.Y = Height;
 
         Loaded += ResultWindow_Loaded;
         PreviewKeyDown += (_, e) =>
@@ -66,6 +69,13 @@ public partial class ResultWindow : Window
         var hwnd = new WindowInteropHelper(this).Handle;
         var cornerPreference = DWMWCP_DONOTROUND;
         DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPreference, sizeof(int));
+        NativeMethods.ForceRepaint(this);
+
+        var accent = AccentColor.Parse(AppSettings.Current.AccentColor);
+        var accentBrush = new SolidColorBrush(accent);
+        StatusDot.Fill = accentBrush;
+        SpinnerShape.Fill = accentBrush;
+        SpinnerBackdrop.Fill = new SolidColorBrush(Color.FromArgb(0x33, accent.R, accent.G, accent.B));
     }
 
     public async Task PreWarmAsync()
@@ -111,11 +121,11 @@ public partial class ResultWindow : Window
     {
         if (!_revealed) return;
         _revealed = false;
-        var slideDown = new DoubleAnimation(Top, SystemParameters.WorkArea.Bottom, TimeSpan.FromMilliseconds(200))
+        var slideDown = new DoubleAnimation(0, Height, TimeSpan.FromMilliseconds(200))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };
-        BeginAnimation(TopProperty, slideDown);
+        SlideTransform.BeginAnimation(TranslateTransform.YProperty, slideDown);
     }
 
     private void Reveal()
@@ -123,13 +133,13 @@ public partial class ResultWindow : Window
         Topmost = false;
         Topmost = true;
         Left = _targetLeft;
-        Top = SystemParameters.WorkArea.Bottom;
-        var slideUp = new DoubleAnimation(SystemParameters.WorkArea.Bottom, _targetTop,
-            TimeSpan.FromMilliseconds(260))
+        Top = _targetTop;
+        NativeMethods.ForceRepaint(this);
+        var slideUp = new DoubleAnimation(Height, 0, TimeSpan.FromMilliseconds(260))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         };
-        BeginAnimation(TopProperty, slideUp);
+        SlideTransform.BeginAnimation(TranslateTransform.YProperty, slideUp);
     }
 
     private async Task RunSearchAsync(byte[] jpegBytes)
@@ -242,7 +252,24 @@ public partial class ResultWindow : Window
         }
     }
 
-    private async Task EnsureCoreWebView2Async()
+    private Task? _coreWebView2InitTask;
+
+    private Task EnsureCoreWebView2Async() => _coreWebView2InitTask ??= RunCoreWebView2InitAsync();
+
+    private async Task RunCoreWebView2InitAsync()
+    {
+        try
+        {
+            await EnsureCoreWebView2AsyncCore();
+        }
+        catch
+        {
+            _coreWebView2InitTask = null;
+            throw;
+        }
+    }
+
+    private async Task EnsureCoreWebView2AsyncCore()
     {
         if (Browser.CoreWebView2 is not null) return;
 

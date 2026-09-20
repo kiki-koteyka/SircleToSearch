@@ -19,8 +19,7 @@
         <Path x:Name="DimOverlay" Fill="Black" Opacity="0.55"/>
 
         <Canvas x:Name="HandleLayer" IsHitTestVisible="False">
-            <Rectangle x:Name="SelectionBorder" Visibility="Collapsed"
-                       Stroke="White" StrokeThickness="2.5" Fill="Transparent"/>
+            <Rectangle x:Name="SelectionBorder" Visibility="Collapsed" Fill="Transparent"/>
             <Canvas x:Name="Handles"/>
         </Canvas>
 
